@@ -1,0 +1,2 @@
+   Model R2_log_Avg R2_log_Std MAE_Orig_Avg MAE_Orig_Std RMSE_Orig_Avg RMSE_Orig_Std MAPE_Orig_Avg MAPE_Orig_Std
+SimpleNN     0.9988     0.0001   1.7906e-05   7.6131e-06    6.4942e-05    3.0351e-05       14.9299        1.4157
