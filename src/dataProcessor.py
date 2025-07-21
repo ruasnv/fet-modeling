@@ -8,15 +8,18 @@ import joblib
 import os
 import warnings
 
+from src.helpers import calculate_vth, classify_region
+
 
 class DataProcessor:
     def __init__(self, raw_data_path):
         self.raw_data_path = raw_data_path
         self.df = None  # Raw loaded DataFrame
-        self.filtered_original_df = None  # New: Stores the full DataFrame after initial filtering and feature engineering
+        self.filtered_original_df = None  # Stores the full DataFrame after filtering and feature engineering
         self.scaler_X = None
         self.scaler_y = None
-        self.features_for_model = ['vg', 'vd', 'vb', 'w', 'l', 'wOverL']
+        #The feature vector for the model.
+        self.features_for_model = ['vg', 'vd', 'vb', 'wOverL']
         self.target_feature = 'log_Id'
         self.stratify_column = 'operating_region'
 
@@ -30,13 +33,13 @@ class DataProcessor:
         self.X_final_test_original_df = None
 
     def _load_raw_data(self):
-        """Loads raw data silently."""
+        """Loads raw data."""
         print(f"Loading raw data from {self.raw_data_path}...")
         try:
             self.df = pd.read_csv(self.raw_data_path)
-            # Add vgs and vds here as they are needed for filtering and feature engineering
-            self.df['vgs'] = self.df['vg'] - self.df['vs']
-            self.df['vds'] = self.df['vd'] - self.df['vs']
+            #Vs = 0. Source terminal is grounded.
+            self.df['vgs'] = self.df['vg']
+            self.df['vds'] = self.df['vd']
         except FileNotFoundError:
             print(
                 f"Error: Raw data file not found at {self.raw_data_path}. Please ensure it's in the 'data' directory.")
@@ -44,14 +47,14 @@ class DataProcessor:
             return
 
     def _filter_data(self, temp_filter=27.0):
-        """Filters data silently."""
+        """Filters the data"""
         if self.df is None:
             self._load_raw_data()
-            if self.df is None:  # If raw data still not loaded, return
+            if self.df is None:  # If raw data still not loaded
                 return
 
         initial_rows = len(self.df)
-        self.filtered_original_df = self.df[  # Use filtered_original_df here
+        self.filtered_original_df = self.df[
             (self.df['id'] > 0) &
             (self.df['vd'] > 0) &
             (self.df['temp'] == temp_filter)
@@ -61,65 +64,63 @@ class DataProcessor:
             f"Filtered data: {len(self.filtered_original_df)} rows remaining (from {initial_rows} initial rows) after Id>0, Vd>0, and Temp={temp_filter}C filtering.")
 
     def _engineer_features(self):
-        """Engineers new features silently."""
-        if self.filtered_original_df is None:  # Use filtered_original_df here
+        """Engineers new features."""
+        if self.filtered_original_df is None:
             self._filter_data()
-            if self.filtered_original_df is None:  # If filtered data still not available, return
+            if self.filtered_original_df is None:  # Filtered data still not available
                 return
 
         self.filtered_original_df['wOverL'] = self.filtered_original_df['w'] / self.filtered_original_df[
-            'l']  # Use filtered_original_df
+            'l']
 
+        #Log transformation for Id. Wrapped in warning catch block. log10 is used.
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", RuntimeWarning)
-            self.filtered_original_df['log_Id'] = np.log10(self.filtered_original_df['id'])  # Use filtered_original_df
+            self.filtered_original_df['log_Id'] = np.log10(self.filtered_original_df['id'])
 
-        Vth = 0.7
+        #Calculates the Vth dynamically based on the body effect, function calculate_vth is in helpers.py
+        self.filtered_original_df['vsb'] = -self.filtered_original_df['vb']
+        self.filtered_original_df['vth'] = calculate_vth(self.filtered_original_df['vsb'])
 
-        # Vgs and Vds are already created in _load_raw_data, no need to check/recreate here
+        #Find operating regions with new Vth using the classify_region helper function located in helpers.py.
+        self.filtered_original_df['operating_region'] = self.filtered_original_df.apply(classify_region, axis=1)
 
-        def classify_region(row, Vth_val):
-            Vgs_val, Vds_val = row['vgs'], row['vds']
-            if Vgs_val < Vth_val:
-                return 'Cut-off'
-            elif Vds_val < (Vgs_val - Vth_val):
-                return 'Linear'
-            else:
-                return 'Saturation'
-
-        self.filtered_original_df['operating_region'] = self.filtered_original_df.apply(classify_region, axis=1,
-                                                                                        Vth_val=Vth)  # Use filtered_original_df
-        print("Operating region distribution (for stratification):")
+        print("Operating region distribution:")
         print(self.filtered_original_df['operating_region'].value_counts(normalize=True).round(3))
 
-    def prepare_cv_and_final_test_sets(self, cv_test_split_ratio=0.1, n_splits_cv=10, random_state=42,
-                                       save_path="data/processed_data"):
+    def prepare_cv_and_final_test_sets(self, cv_test_split_ratio=0.1, n_splits_cv=10, random_state=42,save_path="data/processed_data"):
         """
         Prepares the data for cross-validation and a final held-out test set.
-        This method will print messages about the data preparation process.
+        Prints messages about the data preparation process.
         """
-        print("\n--- Starting Data Preparation for CV and Final Test ---")
-        self._engineer_features()  # Ensure all preprocessing is done silently
+        print("\nStarting Data Preparation for 10-fold Cross Validation and Separate Final Test Set")
+        self._engineer_features()
 
         if self.filtered_original_df is None or self.filtered_original_df.empty:
             print(
                 "Error: No data available after filtering and feature engineering. Cannot prepare CV and final test sets.")
             return
 
+
         X_full = self.filtered_original_df[self.features_for_model]
         y_full = self.filtered_original_df[self.target_feature].values.reshape(-1, 1)
 
-        print(f"\nPerforming initial stratified split (CV Pool vs. Final Test Set, ratio={cv_test_split_ratio})...")
-        X_cv_pool, X_final_test, y_cv_pool, y_final_test, \
-            idx_cv_pool, idx_final_test = train_test_split(
+        print(f"\nPerforming initial stratified split (CV Pool - Final Test Set with ratio={cv_test_split_ratio})")
+        X_cv_pool, X_final_test, y_cv_pool, y_final_test, idx_cv_pool, idx_final_test = train_test_split(
             X_full, y_full, self.filtered_original_df.index,  # Use filtered_original_df.index for splitting
             test_size=cv_test_split_ratio,
             random_state=random_state,
             stratify=self.filtered_original_df[self.stratify_column]  # Use filtered_original_df for stratification
+            # Stratified split ensured protection of the data distribution over splits. Protection over the stratified_column field.
+            # stratify_column is Operating Regions in this case.
         )
 
         self.X_cv_original_df = self.filtered_original_df.loc[idx_cv_pool].copy()
         self.X_final_test_original_df = self.filtered_original_df.loc[idx_final_test].copy()
+
+        #Scaling X and y
+        #TODO: Don't forget inverse transform when plotting.
+        # np.power(10, inverse_transform(predicted_log_id_scaled))
 
         self.scaler_X = StandardScaler()
         self.X_cv_scaled = self.scaler_X.fit_transform(X_cv_pool)
@@ -133,17 +134,20 @@ class DataProcessor:
         print(f"CV Pool size: {len(self.X_cv_scaled)} samples")
         print(f"Final Test Set size: {len(self.X_final_test_scaled)} samples")
 
-        print(f"\nGenerating {n_splits_cv} stratified folds for CV Pool...")
+        #For Debugging if needed
+        #print("Sample:")
+        #print(self.filtered_original_df[['vg', 'vb', 'vsb', 'vth', 'vgs', 'vds', 'operating_region']].sample(5))
+
+        #Spliting the CV dataset into 10 folds for cross validation
+        print(f"\nGenerating {n_splits_cv} stratified folds for CV Pool")
         skf = StratifiedKFold(n_splits=n_splits_cv, shuffle=True, random_state=random_state)
-
         cv_pool_stratify_labels = self.X_cv_original_df[self.stratify_column].values
-
         self.cv_fold_indices = list(skf.split(self.X_cv_scaled, cv_pool_stratify_labels))
         print(f"Generated {len(self.cv_fold_indices)} CV folds.")
-
         self.save_processed_data(save_path)
-        print("\nData preparation for CV and final test complete.")
+        print("\nData preparation complete")
 
+    #GETTERS
     def get_cv_data(self):
         """Returns scaled CV pool data and fold indices."""
         if self.X_cv_scaled is None or not self.cv_fold_indices:

@@ -1,9 +1,8 @@
 # eda.py - Exploratory Data Analysis
-
 import pandas as pd
 import numpy as np
 import matplotlib
-matplotlib.use('Agg') # ADD THIS LINE
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import seaborn as sns
 import warnings

@@ -1,16 +1,14 @@
 # src/pytorchEval.py
-
 import torch
 import numpy as np
 from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error, mean_absolute_percentage_error
 
 class NNEvaluator:
-    def __init__(self, model, device, scaler_X, scaler_y, features_for_model):
+    def __init__(self, model, device, scaler_X, scaler_y):
         self.model = model
         self.device = device
         self.scaler_X = scaler_X
         self.scaler_y = scaler_y
-        self.features_for_model = features_for_model
 
     def evaluate_model(self, X_test_scaled, y_test_scaled):
         """
@@ -32,8 +30,8 @@ class NNEvaluator:
         y_pred_np_scaled_log = y_pred_tensor.cpu().numpy()
 
         # Inverse transform predictions and true values back to original Id scale for MAPE calculation
-        y_test_original_id = np.power(10, self.scaler_y.inverse_transform(y_test_np_scaled_log))
-        y_pred_original_id = np.power(10, self.scaler_y.inverse_transform(y_pred_np_scaled_log))
+        y_test_original_id = np.power(10, self.scaler_y.inverse_transform(y_test_np_scaled_log.reshape(-1, 1)).flatten())
+        y_pred_original_id = np.power(10, self.scaler_y.inverse_transform(y_pred_np_scaled_log.reshape(-1, 1)).flatten())
 
         # Metrics on the log_Id scale (what the model directly optimizes)
         r2_log = r2_score(y_test_np_scaled_log, y_pred_np_scaled_log)
@@ -46,7 +44,7 @@ class NNEvaluator:
         rmse_original_id = np.sqrt(mean_squared_error(y_test_original_id, y_pred_original_id))
 
 
-        print(f"\n--- Model Evaluation on Test Set ---")
+        print(f"\nModel Evaluation on Test Set")
         print(f"  R-squared (R2) [log_Id scale]: {r2_log:.4f}")
         print(f"  Mean Absolute Error (MAE) [log_Id scale]: {mae_log:.4f}")
         print(f"  Root Mean Squared Error (RMSE) [log_Id scale]: {rmse_log:.4f}")
@@ -54,5 +52,13 @@ class NNEvaluator:
         print(f"  Root Mean Squared Error (RMSE) [Original Id scale]: {rmse_original_id:.4e}")
         print(f"  Mean Absolute Percentage Error (MAPE) [Original Id scale]: {mape_original_id:.2f}%")
 
-        return r2_log, mae_original_id, rmse_original_id, mape_original_id
+        return {
+            'r2_log': r2_log,
+            'mae_log': mae_log,
+            'rmse_log': rmse_log,
+            'mae_orig': mae_original_id,
+            'rmse_orig': rmse_original_id,
+            'mape_orig': mape_original_id
+        }
+
 

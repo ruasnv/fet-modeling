@@ -1,11 +1,9 @@
 # src/pytorchCrossVal.py
-
 import torch
 import numpy as np
 import pandas as pd
 import os
 from collections import defaultdict
-
 
 class PyTorchCrossValidator:
     def __init__(self, device, criterion, scaler_x, scaler_y, features_for_model):
@@ -57,7 +55,7 @@ class PyTorchCrossValidator:
         os.makedirs(model_report_dir, exist_ok=True)
 
         for fold, (train_index, test_index) in enumerate(cv_fold_indices):
-            print(f"\n===== Starting Fold {fold + 1}/{n_splits} for {model_name} =====")
+            print(f"\n Starting Fold {fold + 1}/{n_splits} for {model_name}")
 
             X_train_fold_scaled = X_cv_scaled[train_index]
             y_train_fold_scaled = y_cv_scaled[train_index]
@@ -70,12 +68,7 @@ class PyTorchCrossValidator:
             print(f"Fold {fold + 1} Testing Region Distribution:\n{test_region_dist.round(3)}")
 
             model_instance = model_class(**model_params)
-            model_instance.to(self.device)
-
             fold_model_path = os.path.join(model_save_dir_for_cv, f'model_fold_{fold + 1}.pth')
-
-            train_losses = []
-            test_losses = []
 
             # Initialize trainer for the current fold
             optimizer = torch.optim.Adam(model_instance.parameters(), **trainer_params.get('optimizer_params', {}))
@@ -86,10 +79,10 @@ class PyTorchCrossValidator:
                 model_instance.load_state_dict(torch.load(fold_model_path, map_location=self.device))
                 model_instance.eval()
             else:
-                X_train_tensor = torch.tensor(X_train_fold_scaled, dtype=torch.float32).to(self.device)
-                y_train_tensor = torch.tensor(y_train_fold_scaled, dtype=torch.float32).to(self.device)
-                X_test_tensor = torch.tensor(X_test_fold_scaled, dtype=torch.float32).to(self.device)
-                y_test_tensor = torch.tensor(y_test_fold_scaled, dtype=torch.float32).to(self.device)
+                X_train_tensor = torch.from_numpy(X_train_fold_scaled)
+                y_train_tensor = torch.from_numpy(y_train_fold_scaled)
+                X_test_tensor = torch.from_numpy(X_test_fold_scaled)
+                y_test_tensor = torch.from_numpy(y_test_fold_scaled)
 
                 train_losses, test_losses = trainer.train(
                     X_train_tensor, y_train_tensor, X_test_tensor, y_test_tensor,
@@ -116,7 +109,7 @@ class PyTorchCrossValidator:
                     output_dir=model_report_dir
                 )
 
-        print(f"\n--- Cross-Validation Complete for {model_name} ({n_splits} folds) ---")
+        print(f"\nCross-Validation Complete for {model_name} ({n_splits} folds)")
 
         detailed_results_df = pd.DataFrame(all_fold_metrics)
         detailed_results_df['Model'] = model_name
@@ -136,15 +129,15 @@ class PyTorchCrossValidator:
             'MAPE_Orig_Std': [std_metrics['MAPE_original']]
         })
 
-        # Define a custom formatter for the original scale metrics to use scientific notation
+        # Define a custom formatter for the original scale metrics
         # This will be used for both printing to console and saving to CSV
         formatter = {
             'R2_log_Avg': '{:.4f}'.format,
             'R2_log_Std': '{:.4f}'.format,
-            'MAE_Orig_Avg': '{:.4e}'.format,  # Scientific notation for MAE
-            'MAE_Orig_Std': '{:.4e}'.format,  # Scientific notation for MAE Std
-            'RMSE_Orig_Avg': '{:.4e}'.format,  # Scientific notation for RMSE
-            'RMSE_Orig_Std': '{:.4e}'.format,  # Scientific notation for RMSE Std
+            'MAE_Orig_Avg': '{:.4e}'.format,
+            'MAE_Orig_Std': '{:.4e}'.format,
+            'RMSE_Orig_Avg': '{:.4e}'.format,
+            'RMSE_Orig_Std': '{:.4e}'.format,
             'MAPE_Orig_Avg': '{:.4f}'.format,
             'MAPE_Orig_Std': '{:.4f}'.format
         }
@@ -152,6 +145,5 @@ class PyTorchCrossValidator:
         print("\nAverage and Standard Deviation of Metrics Across Folds:")
         # Apply the formatter when printing to console
         print(summary_results_df.to_string(index=False, formatters=formatter))
-
         return summary_results_df, detailed_results_df
 

@@ -1,10 +1,8 @@
 # src/pytorchTrain.py
-
 import torch
 from torch.utils.data import DataLoader, TensorDataset
 import os
-import matplotlib.pyplot as plt  # Import matplotlib here
-
+import matplotlib.pyplot as plt
 
 class NNTrainer:
     def __init__(self, model, device, criterion, optimizer, model_save_path):
@@ -14,7 +12,8 @@ class NNTrainer:
         self.optimizer = optimizer
         self.model_save_path = model_save_path
         self.best_test_loss = float('inf')
-        os.makedirs(os.path.dirname(model_save_path), exist_ok=True)
+        model_dir = os.path.dirname(model_save_path) or '.'
+        os.makedirs(model_dir, exist_ok=True)
 
     def train(self, x_train_tensor, y_train_tensor, x_test_tensor, y_test_tensor, num_epochs, batch_size):
         """
@@ -31,7 +30,6 @@ class NNTrainer:
         """
         train_losses = []
         test_losses = []
-
         train_data = TensorDataset(x_train_tensor, y_train_tensor)
         train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
 
@@ -56,18 +54,28 @@ class NNTrainer:
 
             # Evaluate on test set after each epoch
             self.model.eval()  # Set model to evaluation mode
+
+            #TODO: If exploding gradients ever occur, use gradient clipping
+            # torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
+
+            #Good practise to empty the cache for tight GPU memories
+            torch.cuda.empty_cache()
+
+            # direct test loss calculation
+            # Since we are not performin backward, we should use torch.no_grad()
+            # "when you are sure that you will not call Tensor. backward(). It will reduce memory consumption for computations"
             with torch.no_grad():
                 test_outputs = self.model(x_test_tensor.to(self.device))
                 test_loss = self.criterion(test_outputs, y_test_tensor.to(self.device)).item()
             test_losses.append(test_loss)
 
-            print(f'Epoch [{epoch + 1}/{num_epochs}], Train Loss: {avg_train_loss:.6f}, Test Loss: {test_loss:.6f}')
+            print(f'Epoch [{epoch + 1}/{num_epochs}] | Train Loss: {avg_train_loss:.6f} | Test Loss: {test_loss:.6f}')
 
             # Save the model if it's the best so far on the test set
             if test_loss < self.best_test_loss:
                 self.best_test_loss = test_loss
                 torch.save(self.model.state_dict(), self.model_save_path)
-                # print(f"  --> Model saved to {self.model_save_path} (Test Loss: {test_loss:.6f})")
+                print(f" Best model saved to {self.model_save_path}")
 
         print(f"Training complete. Best test loss: {self.best_test_loss:.6f}")
         return train_losses, test_losses
@@ -89,8 +97,8 @@ class NNTrainer:
                 f"No loss history to plot for {model_name} (Fold {fold_num if fold_num is not None else 'Final'}). Skipping loss plot.")
             return
 
+        #Configs
         os.makedirs(output_dir, exist_ok=True)
-
         plt.figure(figsize=(10, 6))
         plt.plot(range(1, num_epochs + 1), train_losses, label='Training Loss')
         plt.plot(range(1, num_epochs + 1), test_losses, label='Testing Loss')
@@ -110,4 +118,10 @@ class NNTrainer:
         plt.savefig(os.path.join(output_dir, filename))
         plt.close()
         print(f"Loss plot saved to: {os.path.join(output_dir, filename)}")
+
+        #If raw loss arrays are needed in the future for future analysis use the code below.
+        # import numpy as np
+        #np.save(os.path.join(output_dir, f'{model_name}_train_losses.npy'), train_losses)
+        #np.save(os.path.join(output_dir, f'{model_name}_test_losses.npy'), test_losses)
+
 
