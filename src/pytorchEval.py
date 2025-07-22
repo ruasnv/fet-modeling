@@ -43,8 +43,7 @@ class NNEvaluator:
         mae_original_id = mean_absolute_error(y_test_original_id, y_pred_original_id)
         rmse_original_id = np.sqrt(mean_squared_error(y_test_original_id, y_pred_original_id))
 
-
-        print(f"\nModel Evaluation on Test Set")
+        print(f"\nEvaluating {self.model}")
         print(f"  R-squared (R2) [log_Id scale]: {r2_log:.4f}")
         print(f"  Mean Absolute Error (MAE) [log_Id scale]: {mae_log:.4f}")
         print(f"  Root Mean Squared Error (RMSE) [log_Id scale]: {rmse_log:.4f}")

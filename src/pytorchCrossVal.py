@@ -5,6 +5,7 @@ import pandas as pd
 import os
 from collections import defaultdict
 
+
 class PyTorchCrossValidator:
     def __init__(self, device, criterion, scaler_x, scaler_y, features_for_model):
         self.device = device
@@ -67,17 +68,21 @@ class PyTorchCrossValidator:
             print(f"Fold {fold + 1} Training Region Distribution:\n{train_region_dist.round(3)}")
             print(f"Fold {fold + 1} Testing Region Distribution:\n{test_region_dist.round(3)}")
 
-            model_instance = model_class(**model_params)
+            model_instance = model_class(**model_params).to(self.device)
             fold_model_path = os.path.join(model_save_dir_for_cv, f'model_fold_{fold + 1}.pth')
 
             # Initialize trainer for the current fold
             optimizer = torch.optim.Adam(model_instance.parameters(), **trainer_params.get('optimizer_params', {}))
             trainer = trainer_class(model_instance, self.device, self.criterion, optimizer, fold_model_path)
 
+            train_losses = []  # Initialize here, will be populated if training occurs
+            test_losses = []  # Initialize here, will be populated if training occurs
+
             if skip_if_exists and os.path.exists(fold_model_path):
                 print(f"  Skipping training for Fold {fold + 1}: Model already exists at {fold_model_path}")
                 model_instance.load_state_dict(torch.load(fold_model_path, map_location=self.device))
                 model_instance.eval()
+                # If skipping training, losses lists remain empty.
             else:
                 X_train_tensor = torch.from_numpy(X_train_fold_scaled)
                 y_train_tensor = torch.from_numpy(y_train_fold_scaled)
@@ -89,17 +94,18 @@ class PyTorchCrossValidator:
                     num_epochs=num_epochs, batch_size=batch_size
                 )
 
-            # Evaluation for the current fold (whether trained or loaded)
-            evaluator = evaluator_class(model_instance, self.device, self.scaler_x, self.scaler_y,
-                                        self.features_for_model)
+            # --- Evaluation and Metric Appending (MOVED OUTSIDE IF/ELSE) ---
+            evaluator = evaluator_class(model_instance, self.device, self.scaler_x, self.scaler_y)
+            metrics = evaluator.evaluate_model(X_test_fold_scaled, y_test_fold_scaled)
 
-            r2, mae_orig, rmse_orig, mape_orig = evaluator.evaluate_model(X_test_fold_scaled, y_test_fold_scaled)
-
-            all_fold_metrics['Fold'].append(fold + 1)
-            all_fold_metrics['R2_log'].append(r2)
-            all_fold_metrics['MAE_original'].append(mae_orig)
-            all_fold_metrics['RMSE_original'].append(rmse_orig)
-            all_fold_metrics['MAPE_original'].append(mape_orig)
+            # Append metrics using lowercase keys for consistency
+            # Add a check for finite values to prevent TypeError from non-numeric data
+            for key, value in metrics.items():
+                if np.isfinite(value):
+                    all_fold_metrics[key].append(value)
+                else:
+                    print(
+                        f"Warning: Non-finite value encountered for metric '{key}' in Fold {fold + 1}. Skipping this value.")
 
             # Use Trainer's method to save losses plot for this fold if training occurred
             if train_losses:  # Check if losses were actually generated (i.e., training happened)
@@ -114,23 +120,24 @@ class PyTorchCrossValidator:
         detailed_results_df = pd.DataFrame(all_fold_metrics)
         detailed_results_df['Model'] = model_name
 
+        # Calculate averages and standard deviations using the lowercase keys
         avg_metrics = {metric: np.mean(values) for metric, values in all_fold_metrics.items() if metric != 'Fold'}
         std_metrics = {metric: np.std(values) for metric, values in all_fold_metrics.items() if metric != 'Fold'}
 
+        # Construct summary_results_df using the lowercase keys from avg_metrics/std_metrics
         summary_results_df = pd.DataFrame({
             'Model': [model_name],
-            'R2_log_Avg': [avg_metrics['R2_log']],
-            'R2_log_Std': [std_metrics['R2_log']],
-            'MAE_Orig_Avg': [avg_metrics['MAE_original']],
-            'MAE_Orig_Std': [std_metrics['MAE_original']],
-            'RMSE_Orig_Avg': [avg_metrics['RMSE_original']],
-            'RMSE_Orig_Std': [std_metrics['RMSE_original']],
-            'MAPE_Orig_Avg': [avg_metrics['MAPE_original']],
-            'MAPE_Orig_Std': [std_metrics['MAPE_original']]
+            'R2_log_Avg': [avg_metrics['r2_log']],
+            'R2_log_Std': [std_metrics['r2_log']],
+            'MAE_Orig_Avg': [avg_metrics['mae_orig']],
+            'MAE_Orig_Std': [std_metrics['mae_orig']],
+            'RMSE_Orig_Avg': [avg_metrics['rmse_orig']],
+            'RMSE_Orig_Std': [std_metrics['rmse_orig']],
+            'MAPE_Orig_Avg': [avg_metrics['mape_orig']],
+            'MAPE_Orig_Std': [std_metrics['mape_orig']]
         })
 
         # Define a custom formatter for the original scale metrics
-        # This will be used for both printing to console and saving to CSV
         formatter = {
             'R2_log_Avg': '{:.4f}'.format,
             'R2_log_Std': '{:.4f}'.format,
@@ -143,7 +150,5 @@ class PyTorchCrossValidator:
         }
 
         print("\nAverage and Standard Deviation of Metrics Across Folds:")
-        # Apply the formatter when printing to console
         print(summary_results_df.to_string(index=False, formatters=formatter))
         return summary_results_df, detailed_results_df
-

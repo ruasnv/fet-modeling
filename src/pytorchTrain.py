@@ -30,6 +30,12 @@ class NNTrainer:
         """
         train_losses = []
         test_losses = []
+
+        x_train_tensor = x_train_tensor.to(self.device)
+        y_train_tensor = y_train_tensor.to(self.device)
+        x_test_tensor = x_test_tensor.to(self.device)
+        y_test_tensor = y_test_tensor.to(self.device)
+
         train_data = TensorDataset(x_train_tensor, y_train_tensor)
         train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
 
@@ -40,7 +46,8 @@ class NNTrainer:
             running_train_loss = 0.0
 
             for inputs, targets in train_loader:
-                inputs, targets = inputs.to(self.device), targets.to(self.device)
+                inputs = inputs.to(self.device).float()
+                targets = targets.to(self.device).float()
 
                 self.optimizer.zero_grad()
                 outputs = self.model(inputs)
@@ -62,10 +69,10 @@ class NNTrainer:
             torch.cuda.empty_cache()
 
             # direct test loss calculation
-            # Since we are not performin backward, we should use torch.no_grad()
+            # Since we are not performing backward, we should use torch.no_grad()
             # "when you are sure that you will not call Tensor. backward(). It will reduce memory consumption for computations"
             with torch.no_grad():
-                test_outputs = self.model(x_test_tensor.to(self.device))
+                test_outputs = self.model(x_test_tensor.to(self.device).float())
                 test_loss = self.criterion(test_outputs, y_test_tensor.to(self.device)).item()
             test_losses.append(test_loss)
 
@@ -97,6 +104,7 @@ class NNTrainer:
                 f"No loss history to plot for {model_name} (Fold {fold_num if fold_num is not None else 'Final'}). Skipping loss plot.")
             return
 
+        print(f"Plotting Loss for {model_name}, (Fold {fold_num if fold_num is not None else ''})")
         #Configs
         os.makedirs(output_dir, exist_ok=True)
         plt.figure(figsize=(10, 6))

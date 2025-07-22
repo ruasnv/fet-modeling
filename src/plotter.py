@@ -6,7 +6,6 @@ import os
 import torch
 import pandas as pd
 from scipy.interpolate import interp1d
-from helpers import calculate_vth
 
 
 class Plotter:
@@ -16,140 +15,185 @@ class Plotter:
         self.features_for_model = features_for_model
         self.device = device
 
+    def prepare_model_input_and_predict(
+            self, measured_subset, synthetic_data_pred, model, ax, x_range_dense, label_prefix, color_format
+    ):
+        # Prepare prediction input
+        X_pred = synthetic_data_pred[self.features_for_model]
+        X_pred_scaled = self.scaler_X.transform(X_pred)
+        X_tensor = torch.tensor(X_pred_scaled, dtype=torch.float32).to(self.device)
+
+        # Model prediction
+        with torch.no_grad():
+            y_pred_scaled = model(X_tensor).cpu().numpy()
+
+        # Inverse transform log_Id
+        log_Id_pred = self.scaler_y.inverse_transform(y_pred_scaled)
+
+        # Convert back from log10 to Id
+        Id_pred = np.power(10, log_Id_pred)
+
+        # Convert to µA
+        y_pred_micro = Id_pred.flatten() * 1e6
+
+        # TODO: TO AVOID NEAR-ZERO NOISE
+        y_pred_micro = np.clip(y_pred_micro, 1e-3, None)
+
+        # Plot model prediction (dashed red)
+        ax.plot(x_range_dense, y_pred_micro, color_format , label=f'{label_prefix} - Predicted')
+
+        #FOR DEBUGGING
+        #print(f"  log_Id_pred (after inverse scaling): {log_Id_pred[:5].flatten()}")
+        #print(f"  Id_pred (A): {Id_pred[:5].flatten()}")
+        #print(f"  Id_pred (µA): {y_pred_micro[:5]}")
+
+        # Plot interpolated measured data (solid blue)
+        grouped = measured_subset.groupby('vd')['id'].mean().reset_index()
+        vd_measured = grouped['vd'].values
+        id_measured = grouped['id'].values * 1e6  # Convert to µA
+
+        #TODO: TO AVOID NEAR-ZERO NOISE to debug the oscillations
+        # Avoid log(0) or log of noise
+        id_measured = np.clip(id_measured, 1e-3, None)  # 1e-3 µA = 1e-9 A
+
+        #FOR DEBUGGING
+        #print(f"  vd_measured (len={len(vd_measured)}): {vd_measured[:5]}")
+        #print(f"  id_measured (µA): {id_measured[:5]}")
+        #print(f"  Predicted Id range (scaled): {y_pred_scaled[:5].flatten()}")
+        #print(f"  Predicted Id range (unscaled): {y_pred_micro[:5]}")
+
+        if label_prefix == "Best Case":
+            color_format_measured  = 'r--'
+        else:
+            color_format_measured  = 'b--'
+
+        if len(vd_measured) >= 2:
+
+            #TODO: DEBUG
+            # Force linear for low-current / noisy regions
+            if measured_subset['id'].max() < 1e-9:
+                interp_kind = 'linear'
+            elif len(vd_measured) >= 4:
+                interp_kind = 'cubic'
+            else:
+                interp_kind = 'linear'
+
+            #interp_kind = 'cubic' if len(vd_measured) >= 4 else 'linear'
+            try:
+                interp_func = interp1d(vd_measured, id_measured, kind=interp_kind, fill_value="extrapolate")
+                id_interpolated = interp_func(x_range_dense)
+                ax.plot(x_range_dense, id_interpolated, color_format_measured , label=f'{label_prefix} - Measured')
+            except Exception as e:
+                print(f"Interpolation failed for {label_prefix} — {str(e)}")
+        else:
+            print(f"Not enough data points for interpolation in {label_prefix}. Skipping measured plot.")
+
     def id_vds_characteristics(
-        self,
-        model,
-        full_original_data_for_plot,
-        specific_cases_config,
-        model_name="Model",
-        output_dir="reports/models/final_model_plots/characteristic_plots"
+            self,
+            model,
+            full_original_data_for_plot,
+            cases_config_for_best_worst_plots,
+            model_name="Model",
+            output_dir="reports/models/final_model_plots/characteristic_plots"
     ):
         os.makedirs(output_dir, exist_ok=True)
         model.eval()
 
-        # Increased tolerance for floating point comparisons of W, L, and Vg
-        tolerance_w_l = 1e-6
-        tolerance_vg = 0.05
+        print(f"\nGenerating Id–Vds plots for {model_name}")
 
-        print(f"\nGenerating Id-Vds plots for {model_name}")
-        print(f"Plots will be saved to: {output_dir}")
+        for region, cases in cases_config_for_best_worst_plots.items():
+            print(f"Plotting {region} region...")
 
-        for region, cases in specific_cases_config.items():
-            print(f"Plotting {region} region")
+            # Create two figures: linear and log
+            fig_linear, ax_linear = plt.subplots(figsize=(10, 7))
+            fig_log, ax_log = plt.subplots(figsize=(10, 7))
 
-            #Plot Config
-            fig, ax = plt.subplots(figsize=(10, 7))
-            ax.set_title(f'{model_name} Performance in {region} Region', fontsize=14)
-            ax.set_ylabel('Id (µA)')
-            ax.set_xlabel('Vds (V)')
-            ax.grid(True, which="major")
+            ax_linear.set_title(f'{model_name} Performance in {region} Region (Linear Scale)', fontsize=14)
+            ax_linear.set_ylabel('Id (µA)')
+            ax_linear.set_xlabel('Vds (V)')
+            ax_linear.grid(True)
 
-            #Id ranges for regions - from the paper
-            if region == 'Cut-off':
-                ax.set_ylim([0, 12])
-            elif region == 'Linear':
-                ax.set_ylim([0, 2])
-            else:
-                ax.set_ylim([0, 1])
+            ax_log.set_title(f'{model_name} Performance in {region} Region (Log Scale)', fontsize=14)
+            ax_log.set_ylabel('Id (µA)')
+            ax_log.set_xlabel('Vds (V)')
+            ax_log.set_yscale('log')
+            ax_log.grid(True, which='both', linestyle='--', linewidth=0.5)
 
             for case in cases:
                 label_prefix = case.get('label', 'Case')
                 w_val = case.get('W')
                 l_val = case.get('L')
                 vg_constant = case.get('Vg_const')
-
-                #Set up the x-axis ranges - derived in the main.py from the best/worst calculations
                 x_range_min, x_range_max = case.get('Vds_range')
                 x_range_dense = np.linspace(x_range_min, x_range_max, 100)
 
-                # Generate synthetic prediction data
-                synthetic_data_pred = pd.DataFrame(index=range(len(x_range_dense)))
-                synthetic_data_pred['vg'] = vg_constant
-                synthetic_data_pred['vd'] = x_range_dense
+                subset = full_original_data_for_plot[
+                    (np.isclose(full_original_data_for_plot['w'], w_val, atol=1e-9)) &
+                    (np.isclose(full_original_data_for_plot['l'], l_val, atol=1e-9)) &
+                    (np.isclose(full_original_data_for_plot['vg'], vg_constant, atol=1e-2))
+                    ]
 
-                #TODO: Vb is not 0.0 in the dataset. Maybe make it the column mean
-                synthetic_data_pred['vb'] = 0.0  # Consistent with your model features
-                synthetic_data_pred['w'] = w_val
-                synthetic_data_pred['l'] = l_val
-                synthetic_data_pred['wOverL'] = w_val / l_val
-                # 'vgs' and 'vds' are for internal region classification, not model input
-                synthetic_data_pred['vgs'] = synthetic_data_pred['vg'] - synthetic_data_pred['vb']
-                synthetic_data_pred['vds'] = synthetic_data_pred['vd'] - synthetic_data_pred['vb']
+                if subset.empty:
+                    print(f"No measured data for {label_prefix}. Skipping...")
+                    continue
 
-                # Reorder features properly
-                X_pred = synthetic_data_pred[self.features_for_model]
-                X_pred_scaled = self.scaler_X.transform(X_pred)
-                X_tensor = torch.tensor(X_pred_scaled, dtype=torch.float32).to(self.device)
+                vb_mean = subset['vb'].mean()
 
-                with torch.no_grad():
-                    y_pred_scaled_log = model(X_tensor).cpu().numpy()
-                y_pred_log = self.scaler_y.inverse_transform(y_pred_scaled_log)
-                y_pred = np.power(10, y_pred_log).flatten() * 1e6  # Convert to µA
+                synthetic_data_pred = pd.DataFrame({
+                    'vg': vg_constant,
+                    'vd': x_range_dense,
+                    'vb': vb_mean,
+                    'w': w_val,
+                    'l': l_val
+                })
 
-                ax.plot(x_range_dense, y_pred, '--', label=f'{label_prefix} Predicted', color='red')
+                print(f"\n{label_prefix} Case")
+                print(f"  W = {w_val}, L = {l_val}, Vg = {vg_constant}")
+                #FOR DEBUGGING:
+                #print(f"  Matching measured rows: {len(subset)}")
+                #print(f"  Example rows:\n{subset[['vd', 'vg', 'vb', 'id']].head()}")
 
-                # Filter actual measured data
-                # Filter by W and L first with a generous tolerance
-                measured_df_filtered = full_original_data_for_plot[
-                    (np.isclose(full_original_data_for_plot['w'], w_val, atol=tolerance_w_l)) &
-                    (np.isclose(full_original_data_for_plot['l'], l_val, atol=tolerance_w_l))
-                    ].copy()
-
-            if not measured_df_filtered.empty:
-                # Find the closest 'vg' value in the measured data for the current 'vg_constant'
-                unique_vg_vals = measured_df_filtered['vg'].unique()
-                if unique_vg_vals.size > 0:
-                    closest_vg_val = unique_vg_vals[np.argmin(np.abs(unique_vg_vals - vg_constant))]
-
-                    # Filter for this closest 'vg' and assume 'vb' is also close to 0 if not explicitly 0 in raw data
-                    # Given 'vb' is a feature in your model, and you're setting it to 0 for synthetic data,
-                    # you should filter measured data where 'vb' is also near 0.
-                    # This assumes your original data has 'vb' values that are near 0 for these characteristic plots.
-                    measured_subset = measured_df_filtered[
-                        (np.isclose(measured_df_filtered['vg'], closest_vg_val, atol=tolerance_vg)) &
-                        (np.isclose(measured_df_filtered['vb'], 0.0, atol=tolerance_vg))  # Add vb filter
-                        ].copy()
-
-                    if not measured_subset.empty:
-                        measured_subset = measured_subset.sort_values(by='vds')
-                        # Average Id for same Vds points to smooth out potential noise
-                        measured_subset = measured_subset.groupby('vds')['id'].mean().reset_index()
-
-                        if len(measured_subset['vds']) >= 2:
-                            # Only interpolate if there are at least two unique Vds points
-                            interp_func = interp1d(measured_subset['vds'], measured_subset['id'] * 1e6,
-                                                   kind='linear',
-                                                   fill_value="extrapolate")  # Consider "extrapolate" carefully
-                            measured_id_interp = interp_func(x_range_dense)
-                            ax.plot(x_range_dense, measured_id_interp, '-', label=f'{label_prefix} Measured',
-                                    color='blue')
-                        else:
-                            print(
-                                f"  Warning: Not enough unique Vds points for interpolation for {label_prefix}. Plotting raw points only.")
-
-                        # Always plot the raw measured points
-                        ax.plot(measured_subset['vds'], measured_subset['id'] * 1e6, 'o',
-                                markersize=3, color='blue', alpha=0.6)
-                    else:
-                        print(
-                            f"  No measured data found for W={w_val}, L={l_val}, closest Vg={closest_vg_val} (target Vg={vg_constant}) and Vb near 0.")
+                if label_prefix == "Best Case":
+                    color_format = 'r-'
                 else:
-                    print(f"  No measured data found for W={w_val}, L={l_val}.")
-            ax.legend()
+                    color_format = 'b-'
 
-            # Optional debug printouts
-            """print("\n[DEBUG]")
-            print("Synthetic Data Head (vg, vd, vb, w, l, vgs, vds):")
-            print(synthetic_data_pred[['vg', 'vd', 'vb', 'w', 'l', 'vgs', 'vds']].head())
-            print("Predicted log_Id (first 5):", y_pred_log[:5].flatten())
-            print("Predicted Id µA (first 5):", y_pred[:5])
-            if 'measured_subset' in locals() and not measured_subset.empty:
-                print("Measured Data Head (vds, id):")
-                print(measured_subset[['vds', 'id']].head())
-                print(f"Closest Vg value found in measured data: {closest_vg_val}")"""
+                # Plot both linear and log-scale
+                self.prepare_model_input_and_predict(
+                    measured_subset=subset,
+                    synthetic_data_pred=synthetic_data_pred,
+                    model=model,
+                    ax=ax_linear,
+                    x_range_dense=x_range_dense,
+                    label_prefix=label_prefix,
+                    color_format = color_format
+                )
+                self.prepare_model_input_and_predict(
+                    measured_subset=subset,
+                    synthetic_data_pred=synthetic_data_pred,
+                    model=model,
+                    ax=ax_log,
+                    x_range_dense=x_range_dense,
+                    label_prefix=label_prefix,
+                    color_format =  color_format
+                )
 
-        print(f"{region} region plot is done.")
-        plt.tight_layout()
-        plot_filename = f"{model_name.replace(' ', '_').lower()}_{region.lower().replace('-', '_')}.png"
-        plt.savefig(os.path.join(output_dir, plot_filename))
-        plt.close(fig)
+            #FOR DEBUGGING:
+            # print(np.log10(full_original_data_for_plot['id']).describe())
+
+            ax_linear.legend()
+            ax_log.legend()
+            plt.tight_layout()
+
+            # Save both figures
+            filename_base = f"{model_name.replace(' ', '_').lower()}_{region.lower().replace('-', '_')}"
+            linear_path = os.path.join(output_dir, f"{filename_base}_linear.png")
+            log_path = os.path.join(output_dir, f"{filename_base}_log.png")
+
+            fig_linear.savefig(linear_path)
+            fig_log.savefig(log_path)
+            plt.close(fig_linear)
+            plt.close(fig_log)
+
+            print(f"Finished linear plot for {region} region → saved: {linear_path}")
+            print(f"Finished log-scale plot for {region} region → saved: {log_path}")
