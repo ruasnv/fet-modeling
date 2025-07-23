@@ -19,6 +19,7 @@ class DataProcessor:
         self.scaler_X = None
         self.scaler_y = None
         #The feature vector for the model.
+        #TODO: ADD "WoverL"
         self.features_for_model = ['vg', 'vd', 'vb', 'w', 'l']
         self.target_feature = 'log_Id'
         self.stratify_column = 'operating_region'

@@ -11,6 +11,8 @@ class SimpleNN(nn.Module):
         self.gelu = nn.GELU()  # GELU activation, non-linear, smooth
         #Avoid ReLU, dying ReLU issue on values close to zero
 
+        #TODO:
+
         #TODO: If overfitting occurs add dropout between layers
         # self.dropout = nn.Dropout(0.1)
         # Dropout(0.1) between layers for regularization

@@ -79,6 +79,7 @@ def determine_best_worst_ranges(full_filtered_original_df):
 
     return test
 
+# TODO:
 def calculate_vth(vsb, vth0=0.5, gamma=0.5, phi_f=0.35):
     return vth0 + gamma * (np.sqrt(np.abs(vsb + 2 * phi_f)) - np.sqrt(2 * phi_f))
 
