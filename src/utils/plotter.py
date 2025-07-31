@@ -95,7 +95,7 @@ class Plotter:
             full_original_data_for_plot,
             cases_config_for_best_worst_plots,
             model_name="Model",
-            output_dir="reports/models/final_model_plots/characteristic_plots"
+            output_dir="results/models/final_model_plots/characteristic_plots"
     ):
         os.makedirs(output_dir, exist_ok=True)
         model.eval()

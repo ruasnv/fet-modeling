@@ -1,4 +1,4 @@
-# src/trainer.py
+# src/simple_nn_trainer.py
 import torch
 from torch.utils.data import DataLoader, TensorDataset
 import os
@@ -88,7 +88,7 @@ class NNTrainer:
         return train_losses, test_losses
 
     def plot_losses(self, train_losses, test_losses, num_epochs, model_name, fold_num=None,
-                    output_dir="reports/models"):
+                    output_dir="results/models"):
         """
         Plots training and testing losses and saves the plot.
         Args:

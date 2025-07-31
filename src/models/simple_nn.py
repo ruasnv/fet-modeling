@@ -1,4 +1,4 @@
-# src/models.py
+# src/simple_nn.py
 from torch import nn
 
 class SimpleNN(nn.Module):

@@ -1,4 +1,4 @@
-# src/crossVal.py
+# src/cv_runner.py
 import torch
 import numpy as np
 import pandas as pd
@@ -15,14 +15,14 @@ class PyTorchCrossValidator:
         self.features_for_model = features_for_model
 
     def run_cv(self, model_config, X_cv_scaled, y_cv_scaled, X_cv_original_df, cv_fold_indices,
-               num_epochs=100, batch_size=64, model_save_base_dir="trained_models/k_fold_models",
-               report_output_dir="reports/models",
+               num_epochs=100, batch_size=64, model_save_base_dir="models/k_fold_models",
+               report_output_dir="results/models",
                skip_if_exists=True):
         """
         Runs K-fold cross-validation for a PyTorch model.
 
         Args:
-            model_config (dict): Configuration for the model, trainer, and evaluator.
+            model_config (dict): Configuration for the model, training, and evaluator.
             X_cv_scaled (np.ndarray): Full CV pool features, scaled.
             y_cv_scaled (np.ndarray): Full CV pool target, scaled (log_Id).
             X_cv_original_df (pd.DataFrame): Original DataFrame for stratification verification.
@@ -72,7 +72,7 @@ class PyTorchCrossValidator:
             model_instance = model_class(**model_params).to(self.device)
             fold_model_path = os.path.join(model_save_dir_for_cv, f'model_fold_{fold + 1}.pth')
 
-            # Initialize trainer for the current fold
+            # Initialize training for the current fold
             optimizer = torch.optim.Adam(model_instance.parameters(), **trainer_params.get('optimizer_params', {}))
             trainer = trainer_class(model_instance, self.device, self.criterion, optimizer, fold_model_path)
 

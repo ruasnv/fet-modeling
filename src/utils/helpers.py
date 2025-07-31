@@ -2,6 +2,23 @@
 import torch
 import pandas as pd
 import numpy as np
+import os
+import yaml
+import warnings
+import matplotlib.pyplot as plt
+
+def setup_environment(report_output_dir):
+    plt.style.use('default')
+    plt.rcParams['figure.figsize'] = (10, 8)
+    plt.rcParams['font.size'] = 8
+    warnings.filterwarnings('ignore') # Be careful with this, can hide important warnings
+    os.makedirs(report_output_dir, exist_ok=True)
+    print(f"Report output directory created/ensured: {report_output_dir}")
+
+def load_config(config_path):
+    with open(config_path, 'r') as f:
+        config = yaml.safe_load(f)
+    return config
 
 def debug_single_prediction(model, scaler_X, scaler_y, features_for_model, device):
     """
