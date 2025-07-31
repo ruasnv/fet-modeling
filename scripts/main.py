@@ -6,12 +6,12 @@ import warnings
 import matplotlib
 matplotlib.use('Agg')  # Ensure plots are saved, not displayed interactively
 import matplotlib.pyplot as plt
-from src.data_processiong.dataProcessor import DataProcessor
+from src.data_processing.preprocessor import DataProcessor
 from src.models.simple_nn import SimpleNN
-from src.trainer import NNTrainer
-from src.evaluator import NNEvaluator
-from src.crossVal import PyTorchCrossValidator
-from src.plotter import Plotter
+from src.training.simple_nn_trainer import NNTrainer
+from src.evaluation.evaluator import NNEvaluator
+from src.cross_validation.cv_runner import PyTorchCrossValidator
+from src.utils.plotter import Plotter
 from datetime import datetime
 from config import (
     RAW_DATA_PATH, PROCESSED_DATA_DIR, TRAINED_MODEL_DIR, REPORT_OUTPUT_DIR,

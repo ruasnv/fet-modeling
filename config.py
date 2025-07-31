@@ -2,9 +2,9 @@
 
 # --- Paths ---
 RAW_DATA_PATH = 'data/nmoshv.csv'
-PROCESSED_DATA_DIR = 'data/processed_data'
-TRAINED_MODEL_DIR = 'trained_models'
-REPORT_OUTPUT_DIR = 'reports/models'
+PROCESSED_DATA_DIR = 'data/processed'
+TRAINED_MODEL_DIR = 'models'
+REPORT_OUTPUT_DIR = 'results/models'
 
 # --- Data Filtering ---
 TEMP_FILTER = 27.0

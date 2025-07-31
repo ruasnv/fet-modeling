@@ -1,0 +1,39 @@
+# config/simple_nn_config.yaml
+
+# Data splitting and cross-validation parameters specific to SimpleNN training
+data_split:
+  cv_final_test_split_ratio: 0.15 # Ratio of data to reserve for the final test set (e.g., 0.15 means 15% for test, 85% for CV pool)
+  num_folds: 10 # Number of folds for K-fold cross-validation
+  random_state: 42 # Seed for reproducibility of data splits
+
+# SimpleNN model architecture parameters
+model_params:
+  input_dim: 5 # Number of input features (Vgs, Vds, Vbs, W, L). Update if adding W/L or other features.
+  hidden_dims: [128, 256, 128] # Example: Layers for the SimpleNN (your current setup)
+  activation_function: "GELU" # Activation function to use between layers
+
+# Training specific parameters for SimpleNN
+training_params:
+  num_epochs: 100
+  batch_size: 64
+  learning_rate: 0.001
+  criterion: "MSELoss" # Loss function to use (e.g., MSELoss)
+  optimizer: "Adam" # Optimizer to use (e.g., Adam)
+
+# Flags to control training/plotting behavior for SimpleNN runs
+run_flags:
+  run_cross_validation: True # Whether to execute the cross-validation step
+  skip_training_if_exists: True # If a model file exists, load it instead of retraining
+  skip_plots_if_exists: True # If plot directory exists and is not empty, skip generating plots
+
+# Configuration for specific characteristic plots (e.g., best/worst performing devices)
+plot_cases:
+  - device_size: [1.0, 0.5] # [Width, Length] in um. Represents a specific transistor.
+    vbs_val: -1.0 # Back-gate voltage
+    plot_type: "Id_Vgs_fixed_Vds" # Plot Id vs Vgs for fixed Vds values
+    fixed_vds_vals: [0.1, 0.5, 1.0, 3.0] # Specific Vds values to plot
+  - device_size: [5.0, 0.1]
+    vbs_val: 0.0
+    plot_type: "Id_Vds_fixed_Vgs" # Plot Id vs Vds for fixed Vgs values
+    fixed_vgs_vals: [0.5, 1.0, 2.0, 3.0]
+  # Add more cases as needed for comprehensive plotting

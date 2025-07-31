@@ -1,0 +1,16 @@
+global_settings:
+  matplotlib_style: 'default'
+  figure_figsize: [10, 8]
+  font_size: 8
+  axes_labelsize: 10
+  axes_titlesize: 12
+  legend_fontsize: 8
+  ignore_warnings: True
+
+paths:
+  raw_data_path: 'data/nmoshv.csv'
+  processed_data_dir: 'data/processed'
+  trained_model_dir: 'models/trained'
+  report_output_dir: 'results/reports'
+  eda_output_dir: 'results/eda'
+  plots_output_dir: 'results/plots'

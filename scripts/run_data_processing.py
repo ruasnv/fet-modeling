@@ -1,4 +1,4 @@
-# scripts/preprocess_data.py
+# scripts/run_data_processing.py
 import os
 from src.data_processing.dataProcessor import DataProcessor
 from config.data_config import RAW_DATA_PATH, PROCESSED_DATA_DIR, CV_FINAL_TEST_SPLIT_RATIO, NUM_FOLDS

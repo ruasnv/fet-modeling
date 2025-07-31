@@ -5,28 +5,27 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="b5f4bcab-7aa4-488b-9a35-1f08825f1ac3" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/tests/test_data_preprocessor.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/nmoshv.csv" beforeDir="false" afterPath="$PROJECT_DIR$/data/nmoshv.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/eda.py" beforeDir="false" afterPath="$PROJECT_DIR$/eda.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/FetModeling.jpynb" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/exploration.ipynb" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/reports/models/final_simple_nn_model/before_clamping_near_zero_noise_specific_characteristic_plots/simplenn_(final_plotting_model)_cut_off_linear.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/reports/models/final_simple_nn_model/before_clamping_near_zero_noise_specific_characteristic_plots/simplenn_(final_plotting_model)_cut_off_log.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/reports/models/final_simple_nn_model/before_clamping_near_zero_noise_specific_characteristic_plots/simplenn_(final_plotting_model)_linear_linear.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/reports/models/final_simple_nn_model/before_clamping_near_zero_noise_specific_characteristic_plots/simplenn_(final_plotting_model)_linear_log.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/reports/models/final_simple_nn_model/before_clamping_near_zero_noise_specific_characteristic_plots/simplenn_(final_plotting_model)_saturation_linear.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/reports/models/final_simple_nn_model/before_clamping_near_zero_noise_specific_characteristic_plots/simplenn_(final_plotting_model)_saturation_log.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/pytorchCrossVal.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/crossVal.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/pytorchEval.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/evaluator.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/pytorchModels.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/models.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/pytorchTrain.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/trainer.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/sklearn/__init__.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/sklearn/sklearnCrossVal.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/sklearn/sklearnEval.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/sklearn/sklearnModels.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/sklearn/sklearnTrain.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/worstselections.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/config.py" beforeDir="false" afterPath="$PROJECT_DIR$/config.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/cgan_config.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/config/cgan_config.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/data_config.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/config/data_config.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/main_config.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/config/main_config.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/simple_nn_config.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/config/simple_nn_config.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scripts/eda.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/eda.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scripts/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scripts/run_data_processing.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/run_data_processing.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scripts/train_simple_nn.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/train_simple_nn.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/cross_validation/cv_runner.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/cross_validation/cv_runner.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/data_processiong/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/data_processing/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/data_processiong/augmenter.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/data_processing/augmenter.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/data_processiong/data_loader.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/data_processing/data_loader.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/data_processiong/preprocessor.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/data_processing/preprocessor.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/evaluation/evaluator.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/evaluation/evaluator.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/training/simple_nn_trainer.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/training/simple_nn_trainer.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/training/trainer.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/utils/helpers.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/utils/helpers.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/utils/plotter.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/utils/plotter.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -58,25 +57,25 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;Python.main.executor&quot;: &quot;Run&quot;,
-    &quot;Python.main2.executor&quot;: &quot;Debug&quot;,
-    &quot;Python.pytorchCrossVal.executor&quot;: &quot;Run&quot;,
-    &quot;Python.test_cuda.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
-    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;C:/Users/ruyas/code/fetModeling/reports/models&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Python.main.executor": "Run",
+    "Python.main2.executor": "Debug",
+    "Python.pytorchCrossVal.executor": "Run",
+    "Python.test_cuda.executor": "Run",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "git-widget-placeholder": "feature/gan__data__augmentation",
+    "ignore.virus.scanning.warn.message": "true",
+    "last_opened_file_path": "C:/Users/ruyas/code/fetModeling/reports/models",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="C:\Users\ruyas\code\fetModeling\reports\models" />
@@ -84,11 +83,11 @@
       <recent name="C:\Users\ruyas\code\fetModeling" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
-      <recent name="C:\Users\ruyas\code\fetModeling\reports\models\final_simple_nn_model" />
+      <recent name="C:\Users\ruyas\code\fetModeling\src\cross_validation" />
+      <recent name="C:\Users\ruyas\code\fetModeling\src\evaluation" />
+      <recent name="C:\Users\ruyas\code\fetModeling\scripts" />
       <recent name="C:\Users\ruyas\code\fetModeling" />
-      <recent name="C:\Users\ruyas\code\fetModeling\src\sklearn" />
-      <recent name="C:\Users\ruyas\code\fetModelling\fetModelling" />
-      <recent name="C:\Users\ruyas\code\fetModelling\fetModelling\src" />
+      <recent name="C:\Users\ruyas\code\fetModeling\src\utils" />
     </key>
   </component>
   <component name="RunManager">
@@ -106,7 +105,7 @@
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/main.py" />
+      <option name="SCRIPT_NAME" value="C:\Users\ruyas\code\fetModeling\scripts\main.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -156,7 +155,7 @@
       <workItem from="1753362537593" duration="2219000" />
       <workItem from="1753616043924" duration="140000" />
       <workItem from="1753910934363" duration="1005000" />
-      <workItem from="1753969986562" duration="973000" />
+      <workItem from="1753969986562" duration="11648000" />
     </task>
     <servers />
   </component>
@@ -167,29 +166,39 @@
     <breakpoint-manager>
       <breakpoints>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/main.py</url>
-          <line>81</line>
+          <url>file://$PROJECT_DIR$/scripts/main.py</url>
+          <line>80</line>
           <option name="timeStamp" value="18" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/src/plotter.py</url>
+          <url>file://$PROJECT_DIR$/src/utils/plotter.py</url>
           <line>39</line>
           <option name="timeStamp" value="24" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/src/plotter.py</url>
+          <url>file://$PROJECT_DIR$/src/utils/plotter.py</url>
           <line>56</line>
           <option name="timeStamp" value="25" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/src/plotter.py</url>
+          <url>file://$PROJECT_DIR$/src/utils/plotter.py</url>
           <line>74</line>
           <option name="timeStamp" value="26" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/eda.py</url>
-          <line>142</line>
+          <url>file://$PROJECT_DIR$/scripts/eda.py</url>
+          <line>141</line>
           <option name="timeStamp" value="27" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/src/cross_validation/cv_runner.py</url>
+          <line>55</line>
+          <option name="timeStamp" value="28" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/src/data_processing/preprocessor.py</url>
+          <line>32</line>
+          <option name="timeStamp" value="29" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
@@ -197,7 +206,7 @@
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/fetModeling$test_cuda.coverage" NAME="test_cuda Coverage Results" MODIFIED="1752952977398" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/fetModeling$main2.coverage" NAME="main2 Coverage Results" MODIFIED="1753117373044" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/fetModeling$main.coverage" NAME="main Coverage Results" MODIFIED="1753225549626" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/fetModeling$main.coverage" NAME="main Coverage Results" MODIFIED="1753975873730" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/fetModeling$pytorchCrossVal.coverage" NAME="pytorchCrossVal Coverage Results" MODIFIED="1753117361498" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/src" />
   </component>
 </project>

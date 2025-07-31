@@ -1,0 +1,35 @@
+# config/data_config.yaml
+
+# General data filtering settings
+filtering:
+  id_greater_than_zero: True # Filter out data points where 'id' <= 0
+  vds_greater_than_zero: True # Filter out data points where 'vd' <= 0
+  temperature_filter: 27 # Specific temperature (in Celsius) to filter for. Set to null or remove for all temps.
+
+# Feature engineering parameters
+feature_engineering:
+  input_features: ['vgs', 'vds', 'vbs', 'w', 'l'] # Base features to be used as model inputs
+  include_w_over_l: True # Whether to add 'wOverL' (W/L ratio) as an input feature
+
+# Normalization and Transformation settings
+normalization:
+  method: "StandardScaler" # Scaling method for features and target (e.g., StandardScaler)
+  log_transform_id: True # Apply log10 transformation to 'id' to create 'log_Id'
+  target_feature: 'log_Id' # Name of the target feature after transformation
+
+# Parameters for operating region classification and data splitting
+region_classification:
+  stratify_column: 'operating_region' # Column to use for stratified splitting
+  method: "vth_based" # Method for classifying operating regions: 'vth_based'
+
+  # Parameters for calculate_vth helper function (body effect formula)
+  # These are placeholders; obtain precise values from IHP PDK or device characterization.
+  vth_params:
+    vth0: 0.7 # Zero-bias threshold voltage (Vth at Vsb=0)
+    gamma: 0.4 # Body effect coefficient
+    phi_f: 0.4 # Fermi potential (often 2*phi_f is used in formula; verify your formula's 'phi_f' definition)
+
+data_split:
+  cv_final_test_split_ratio: 0.15 # Ratio of data to reserve for the final test set
+  num_folds: 10 # Number of folds for K-fold cross-validation
+  random_state: 42 # Seed for reproducibility of data splits

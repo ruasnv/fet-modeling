@@ -1,155 +1,150 @@
-# src/cv_runner.py
+# src/training/simple_nn_trainer.py
 import torch
-import numpy as np
-import pandas as pd
+from torch.utils.data import DataLoader, TensorDataset
 import os
-from collections import defaultdict
+import matplotlib.pyplot as plt
 
 
-class PyTorchCrossValidator:
-    def __init__(self, device, criterion, scaler_x, scaler_y, features_for_model):
-        self.device = device
-        self.criterion = criterion
-        self.scaler_x = scaler_x
-        self.scaler_y = scaler_y
-        self.features_for_model = features_for_model
-
-    def run_cv(self, model_config, X_cv_scaled, y_cv_scaled, X_cv_original_df, cv_fold_indices,
-               num_epochs=100, batch_size=64, model_save_base_dir="models/k_fold_models",
-               report_output_dir="results/models",
-               skip_if_exists=True):
+class NNTrainer:
+    def __init__(self, model, device, criterion, optimizer, model_save_path):
         """
-        Runs K-fold cross-validation for a PyTorch model.
+        Initializes the NNTrainer.
 
         Args:
-            model_config (dict): Configuration for the model, training, and evaluator.
-            X_cv_scaled (np.ndarray): Full CV pool features, scaled.
-            y_cv_scaled (np.ndarray): Full CV pool target, scaled (log_Id).
-            X_cv_original_df (pd.DataFrame): Original DataFrame for stratification verification.
-            cv_fold_indices (list): List of (train_idx, test_idx) tuples for each fold.
-            num_epochs (int): Number of training epochs per fold.
+            model (torch.nn.Module): The neural network model to train.
+            device (torch.device): The device (CPU or CUDA) to run training on.
+            criterion (torch.nn.Module): The loss function.
+            optimizer (torch.optim.Optimizer): The optimizer.
+            model_save_path (str): Full path to save the best model's state_dict.
+        """
+        self.model = model
+        self.device = device
+        self.criterion = criterion
+        self.optimizer = optimizer
+        self.model_save_path = model_save_path
+        self.best_test_loss = float('inf')  # Tracks the best test loss for model saving
+
+        # Ensure the directory for saving the model exists
+        model_dir = os.path.dirname(model_save_path)
+        if model_dir:  # Only create if model_save_path is not just a filename
+            os.makedirs(model_dir, exist_ok=True)
+        else:  # If model_save_path is just a filename, assume current directory
+            pass  # os.makedirs('', exist_ok=True) would error, current dir always exists
+
+    def train(self, x_train_tensor, y_train_tensor, x_test_tensor, y_test_tensor, num_epochs, batch_size):
+        """
+        Trains the neural network model and evaluates on a test set each epoch.
+
+        Args:
+            x_train_tensor (np.ndarray or torch.Tensor): Training features.
+            y_train_tensor (np.ndarray or torch.Tensor): Training target.
+            x_test_tensor (np.ndarray or torch.Tensor): Test features (for evaluation during training).
+            y_test_tensor (np.ndarray or torch.Tensor): Test target (for evaluation during training).
+            num_epochs (int): Number of training epochs.
             batch_size (int): Batch size for training.
-            model_save_base_dir (str): Base directory to save models for each fold.
-            report_output_dir (str): Directory to save plots and detailed metrics.
-            skip_if_exists (bool): If True, skips training if a saved model for the fold exists.
 
         Returns:
-            pd.DataFrame: A DataFrame containing average and std deviation of metrics across folds.
-            pd.DataFrame: A DataFrame with detailed metrics for each fold.
+            tuple: Lists of training and testing losses per epoch.
         """
-        model_name = model_config['name']
-        model_class = model_config['model_class']
-        model_params = model_config.get('model_params', {})
-        trainer_class = model_config['trainer_class']
-        trainer_params = model_config.get('trainer_params', {})
-        evaluator_class = model_config['evaluator_class']
+        train_losses = []
+        test_losses = []
 
-        n_splits = len(cv_fold_indices)
-        print(f"\n--- Starting {n_splits}-Fold Cross-Validation for PyTorch Model: {model_name} ---")
+        # Ensure tensors are on the correct device and have correct dtype
+        x_train_tensor = x_train_tensor.to(self.device).float()
+        y_train_tensor = y_train_tensor.to(self.device).float()
+        x_test_tensor = x_test_tensor.to(self.device).float()
+        y_test_tensor = y_test_tensor.to(self.device).float()
 
-        all_fold_metrics = defaultdict(list)
+        train_data = TensorDataset(x_train_tensor, y_train_tensor)
+        train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
 
-        model_save_dir_for_cv = os.path.join(model_save_base_dir, model_name.replace(" ", "_").lower())
-        os.makedirs(model_save_dir_for_cv, exist_ok=True)
+        print(f"  Training on {len(x_train_tensor)} samples for {num_epochs} epochs with batch size {batch_size}")
 
-    #Changed Path
-        model_report_dir = os.path.join(report_output_dir,"_cv_losses_", model_name.replace(" ", "_").lower())
-        os.makedirs(model_report_dir, exist_ok=True)
+        for epoch in range(num_epochs):
+            self.model.train()  # Set model to training mode
+            running_train_loss = 0.0
 
-        for fold, (train_index, test_index) in enumerate(cv_fold_indices):
-            print(f"\n Starting Fold {fold + 1}/{n_splits} for {model_name}")
+            for inputs, targets in train_loader:
+                # inputs and targets are already on device from TensorDataset and .to(self.device) above
+                self.optimizer.zero_grad()
+                outputs = self.model(inputs)
+                loss = self.criterion(outputs, targets)
+                loss.backward()
+                self.optimizer.step()
+                running_train_loss += loss.item() * inputs.size(0)
 
-            X_train_fold_scaled = X_cv_scaled[train_index]
-            y_train_fold_scaled = y_cv_scaled[train_index]
-            X_test_fold_scaled = X_cv_scaled[test_index]
-            y_test_fold_scaled = y_cv_scaled[test_index]
+            avg_train_loss = running_train_loss / len(train_loader.dataset)
+            train_losses.append(avg_train_loss)
 
-            train_region_dist = X_cv_original_df.iloc[train_index]['operating_region'].value_counts(normalize=True)
-            test_region_dist = X_cv_original_df.iloc[test_index]['operating_region'].value_counts(normalize=True)
-            print(f"Fold {fold + 1} Training Region Distribution:\n{train_region_dist.round(3)}")
-            print(f"Fold {fold + 1} Testing Region Distribution:\n{test_region_dist.round(3)}")
+            # Evaluate on test set after each epoch
+            self.model.eval()  # Set model to evaluation mode
+            # Good practice to empty the cache for tight GPU memories, if applicable
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
 
-            model_instance = model_class(**model_params).to(self.device)
-            fold_model_path = os.path.join(model_save_dir_for_cv, f'model_fold_{fold + 1}.pth')
+            # Using torch.no_grad() is crucial for evaluation to save memory and avoid gradient calculations
+            with torch.no_grad():
+                test_outputs = self.model(x_test_tensor)  # x_test_tensor is already on device
+                test_loss = self.criterion(test_outputs, y_test_tensor).item()
+            test_losses.append(test_loss)
 
-            # Initialize training for the current fold
-            optimizer = torch.optim.Adam(model_instance.parameters(), **trainer_params.get('optimizer_params', {}))
-            trainer = trainer_class(model_instance, self.device, self.criterion, optimizer, fold_model_path)
+            print(f'  Epoch [{epoch + 1}/{num_epochs}] | Train Loss: {avg_train_loss:.6f} | Test Loss: {test_loss:.6f}')
 
-            train_losses = []  # Initialize here, will be populated if training occurs
-            test_losses = []  # Initialize here, will be populated if training occurs
+            # Save the model if it's the best so far on the test set
+            if test_loss < self.best_test_loss:
+                self.best_test_loss = test_loss
+                torch.save(self.model.state_dict(), self.model_save_path)
+                print(f"  Best model saved to {self.model_save_path}")
 
-            if skip_if_exists and os.path.exists(fold_model_path):
-                print(f"  Skipping training for Fold {fold + 1}: Model already exists at {fold_model_path}")
-                model_instance.load_state_dict(torch.load(fold_model_path, map_location=self.device))
-                model_instance.eval()
-                # If skipping training, losses lists remain empty.
-            else:
-                X_train_tensor = torch.from_numpy(X_train_fold_scaled)
-                y_train_tensor = torch.from_numpy(y_train_fold_scaled)
-                X_test_tensor = torch.from_numpy(X_test_fold_scaled)
-                y_test_tensor = torch.from_numpy(y_test_fold_scaled)
+        print(f"Training complete. Best test loss: {self.best_test_loss:.6f}")
+        return train_losses, test_losses
 
-                train_losses, test_losses = trainer.train(
-                    X_train_tensor, y_train_tensor, X_test_tensor, y_test_tensor,
-                    num_epochs=num_epochs, batch_size=batch_size
-                )
+    def plot_losses(self, train_losses, test_losses, num_epochs, model_name, fold_num=None,
+                    output_dir=None):  # output_dir is now explicitly passed and required
+        """
+        Plots training and testing losses and saves the plot.
 
-            # --- Evaluation and Metric Appending (MOVED OUTSIDE IF/ELSE) ---
-            evaluator = evaluator_class(model_instance, self.device, self.scaler_x, self.scaler_y)
-            metrics = evaluator.evaluate_model(X_test_fold_scaled, y_test_fold_scaled)
+        Args:
+            train_losses (list): List of training losses per epoch.
+            test_losses (list): List of testing losses per epoch.
+            num_epochs (int): Total number of epochs.
+            model_name (str): Name of the model for the plot title and filename.
+            fold_num (int, optional): The current fold number for CV plots. Defaults to None (for final model).
+            output_dir (str): Directory where the plot will be saved. Must be provided.
+        """
+        if not train_losses or not test_losses:
+            print(
+                f"No loss history to plot for {model_name} (Fold {fold_num if fold_num is not None else 'Final'}). Skipping loss plot.")
+            return
+        if output_dir is None:
+            raise ValueError("output_dir must be provided to plot_losses.")
 
-            # Append metrics using lowercase keys for consistency
-            # Add a check for finite values to prevent TypeError from non-numeric data
-            for key, value in metrics.items():
-                if np.isfinite(value):
-                    all_fold_metrics[key].append(value)
-                else:
-                    print(
-                        f"Warning: Non-finite value encountered for metric '{key}' in Fold {fold + 1}. Skipping this value.")
+        print(f"  Plotting Loss for {model_name}, (Fold {fold_num if fold_num is not None else 'Final Model'})")
 
-            # Use Trainer's method to save losses plot for this fold if training occurred
-            if train_losses:  # Check if losses were actually generated (i.e., training happened)
-                trainer.plot_losses(
-                    train_losses, test_losses, num_epochs,
-                    model_name=model_name, fold_num=fold + 1,
-                    output_dir=model_report_dir
-                )
+        os.makedirs(output_dir, exist_ok=True)  # Ensure output directory exists
 
-        print(f"\nCross-Validation Complete for {model_name} ({n_splits} folds)")
+        plt.figure(figsize=(10, 6))  # Uses global rcParams from setup_environment
+        plt.plot(range(1, num_epochs + 1), train_losses, label='Training Loss')
+        plt.plot(range(1, num_epochs + 1), test_losses, label='Testing Loss')
+        plt.xlabel('Epoch')
+        plt.ylabel('Loss (MSE)')
 
-        detailed_results_df = pd.DataFrame(all_fold_metrics)
-        detailed_results_df['Model'] = model_name
+        if fold_num is not None:
+            title = f'{model_name} Fold {fold_num} Training and Testing Loss over Epochs'
+            filename = f'{model_name.replace(" ", "_").lower()}_fold_{fold_num}_losses.png'
+        else:
+            title = f'{model_name} Training and Testing Loss over Epochs (Final Model)'
+            filename = f'{model_name.replace(" ", "_").lower()}_final_losses.png'
 
-        # Calculate averages and standard deviations using the lowercase keys
-        avg_metrics = {metric: np.mean(values) for metric, values in all_fold_metrics.items() if metric != 'Fold'}
-        std_metrics = {metric: np.std(values) for metric, values in all_fold_metrics.items() if metric != 'Fold'}
+        plt.title(title)
+        plt.legend()
+        plt.grid(True)
 
-        # Construct summary_results_df using the lowercase keys from avg_metrics/std_metrics
-        summary_results_df = pd.DataFrame({
-            'Model': [model_name],
-            'R2_log_Avg': [avg_metrics['r2_log']],
-            'R2_log_Std': [std_metrics['r2_log']],
-            'MAE_Orig_Avg': [avg_metrics['mae_orig']],
-            'MAE_Orig_Std': [std_metrics['mae_orig']],
-            'RMSE_Orig_Avg': [avg_metrics['rmse_orig']],
-            'RMSE_Orig_Std': [std_metrics['rmse_orig']],
-            'MAPE_Orig_Avg': [avg_metrics['mape_orig']],
-            'MAPE_Orig_Std': [std_metrics['mape_orig']]
-        })
+        plot_filepath = os.path.join(output_dir, filename)
+        plt.savefig(plot_filepath)
+        plt.close()  # Close the plot to free memory
+        print(f"  Loss plot saved to: {plot_filepath}")
 
-        # Define a custom formatter for the original scale metrics
-        formatter = {
-            'R2_log_Avg': '{:.4f}'.format,
-            'R2_log_Std': '{:.4f}'.format,
-            'MAE_Orig_Avg': '{:.4e}'.format,
-            'MAE_Orig_Std': '{:.4e}'.format,
-            'RMSE_Orig_Avg': '{:.4e}'.format,
-            'RMSE_Orig_Std': '{:.4e}'.format,
-            'MAPE_Orig_Avg': '{:.4f}'.format,
-            'MAPE_Orig_Std': '{:.4f}'.format
-        }
-
-        print("\nAverage and Standard Deviation of Metrics Across Folds:")
-        print(summary_results_df.to_string(index=False, formatters=formatter))
-        return summary_results_df, detailed_results_df
+        # If raw loss arrays are needed in the future for future analysis use the code below.
+        # np.save(os.path.join(output_dir, f'{model_name}_train_losses.npy'), train_losses)
+        # np.save(os.path.join(output_dir, f'{model_name}_test_losses.npy'), test_losses)
