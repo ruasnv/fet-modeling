@@ -8,6 +8,8 @@ import seaborn as sns
 import warnings
 import os
 from datetime import datetime
+from src import helpers
+from config import TEMP_FILTER
 
 # Suppress warnings for cleaner output
 warnings.filterwarnings('ignore')
@@ -19,7 +21,7 @@ plt.rcParams['font.size'] = 8
 
 # --- Configuration for EDA Output ---
 EDA_OUTPUT_DIR = 'reports/eda'
-os.makedirs(EDA_OUTPUT_DIR, exist_ok=True)  # Ensure directory exists
+os.makedirs(EDA_OUTPUT_DIR, exist_ok=True)
 
 print("Starting EDA...")
 
@@ -78,7 +80,7 @@ with open(log_file_path, 'w') as f:
     plt.close()  # Close plot to free memory and prevent display
 
     # --- Device Size Analysis (Width-Length) - Replicating Fig-1 ---
-    print("\n--- Device Size Analysis ---")
+    print("\n*** Device Size Analysis ***")
     device_sizes = df[['w', 'l']].drop_duplicates().sort_values(['l', 'w'])
     print(f"  Number of unique device sizes: {len(device_sizes)}")
     print(f"  Width range: {df['w'].min():.2e} to {df['w'].max():.2e} meters")
@@ -106,7 +108,7 @@ with open(log_file_path, 'w') as f:
         elif count == 1:
             return 1
         else:
-            return 4  # Assuming 4 distinct temperatures are the max
+            return 4
 
 
     temp_pivot_mapped = temp_pivot.applymap(map_temp_count)
@@ -135,7 +137,8 @@ with open(log_file_path, 'w') as f:
     plt.savefig(os.path.join(EDA_OUTPUT_DIR, 'data_counts_by_device_size.png'))
     plt.close()
 
-    # --- NMOS Classification based on regions (for EDA purposes) ---
+#TODO Replace with the Helper function for it. Lets see how the dynamic approach changes the distribution.
+    # --- NMOS Classification based on regions ---
     print("\n--- Operating Region Distribution (based on Vth=0.7) ---")
     Vth_eda = 0.7  # Using a local Vth for EDA
 
@@ -150,7 +153,7 @@ with open(log_file_path, 'w') as f:
             return 'Saturation'
 
 
-    temp_filter_eda = 27.0
+    temp_filter_eda = TEMP_FILTER
     filtered_df_eda = df[
         (df['id'] > 0) &
         (df['vd'] > 0) &

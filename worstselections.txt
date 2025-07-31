@@ -1,7 +1,0 @@
-Test for best/worst: {'Cut-off': {'id_vs_vds': [{'W': np.float64(1e-05), 'L': np.float64(3e-07), 'Vg_con
-st': np.float64(0.65), 'Vds_range': [0, 4], 'label': 'W=10.0µm, L=0.3µm, Vg=0.65V'}, {'W': np.float64(6e
--07), 'L': np.float64(1e-05), 'Vg_const': np.float64(-0.05), 'Vds_range': [0, 4], 'label': 'W=0.6µm, L=1
-0.0µm, Vg=-0.05V'}]}, 'Linear': {'id_vs_vds': [{'W': np.float64(1e-05), 'L': np.float64(3e-07), 'Vg_cons
-t': np.float64(3.6), 'Vds_range': [0, 4], 'label': 'W=10.0µm, L=0.3µm, Vg=3.60V'}, {'W': np.float64(3e-0
-7), 'L': np.float64(1e-05), 'Vg_const': np.float64(1.148), 'Vds_range': [0, 4], 'label': 'W=0.3µm, L=10.
-0µm, Vg=1.15V'}]}, 'Saturation': {'id_vs_vds': [{'W': np.float64(1e-05), 'L': np.float64(3e-07), 'Vg_const': np.float64(3.6), 'Vds_range': [0, 4], 'label': 'W=10.0µm, L=0.3µm, Vg=3.60V'}, {'W': np.float64(3e-07), 'L': np.float64(1e-05), 'Vg_const': np.float64(1.148), 'Vds_range': [0, 4], 'label': 'W=0.3µm, L=10.0µm, Vg=1.15V'}]}}

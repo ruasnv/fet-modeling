@@ -7,10 +7,10 @@ import matplotlib
 matplotlib.use('Agg')  # Ensure plots are saved, not displayed interactively
 import matplotlib.pyplot as plt
 from src.dataProcessor import DataProcessor
-from src.pytorchModels import SimpleNN
-from src.pytorchTrain import NNTrainer
-from src.pytorchEval import NNEvaluator
-from src.pytorchCrossVal import PyTorchCrossValidator
+from src.models import SimpleNN
+from src.trainer import NNTrainer
+from src.evaluator import NNEvaluator
+from src.crossVal import PyTorchCrossValidator
 from src.plotter import Plotter
 from src.helpers import debug_single_prediction
 from datetime import datetime
