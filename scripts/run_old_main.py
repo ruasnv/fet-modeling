@@ -1,4 +1,4 @@
-# main.py
+# run_old_main.py
 import torch
 import torch.nn as nn
 import os
@@ -13,7 +13,7 @@ from src.evaluation.evaluator import NNEvaluator
 from src.cross_validation.cv_runner import PyTorchCrossValidator
 from src.utils.plotter import Plotter
 from datetime import datetime
-from config import (
+from src.config import (
     RAW_DATA_PATH, PROCESSED_DATA_DIR, TRAINED_MODEL_DIR, REPORT_OUTPUT_DIR,
     CV_FINAL_TEST_SPLIT_RATIO, NUM_FOLDS,
     NN_INPUT_DIM, NN_NUM_EPOCHS, NN_BATCH_SIZE, NN_LEARNING_RATE,

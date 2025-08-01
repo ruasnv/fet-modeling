@@ -1,4 +1,4 @@
-# scripts/train_simple_nn.py
+# scripts/run_training_simple_nn.py
 import torch
 import torch.nn as nn
 import os

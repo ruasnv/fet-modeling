@@ -1,39 +1,36 @@
 # src/data_processing/preprocessor.py
 import os
 import warnings
-
 import joblib
 import numpy as np
-import yaml
+import yaml # Still needed for _load_config if you keep that helper, but better to remove it
 from sklearn.model_selection import StratifiedKFold, train_test_split
 from sklearn.preprocessing import StandardScaler
+from .data_loader import DataLoader # Use relative import if data_loader.py is in the same package
+from src.utils.helpers import calculate_vth, classify_region
 
-from src.utils.helpers import calculate_vth, classify_region  # Assuming these are robust
-
-
-class DataPreprocessor:  # Renamed from DataProcessor for clarity of responsibility
-    def __init__(self, main_config_path, data_config_path):
+class DataPreprocessor:
+    def __init__(self, config_data: dict): # Just takes one merged config dictionary
         """
-        Initializes the DataPreprocessor with paths to configuration files.
+        Initializes the DataPreprocessor with the complete merged configuration data.
         """
-        self.main_config = self._load_config(main_config_path)
-        self.data_config = self._load_config(data_config_path)
+        self.config = config_data # Store the full merged config
 
-        self.raw_data_path = self.main_config['paths']['raw_data_path']
-        self.processed_data_dir = self.main_config['paths']['processed_data_dir']
+        # Access all parameters from the single merged config
+        self.raw_data_path = self.config['paths']['raw_data_path']
+        self.processed_data_dir = self.config['paths']['processed_data_dir']
 
-        self.df = None  # Raw loaded DataFrame
-        self.filtered_original_df = None  # Stores the full DataFrame after filtering and feature engineering
+        self.df = None
+        self.filtered_original_df = None
         self.scaler_X = None
         self.scaler_y = None
 
-        # Features for the model, now from config
-        self.features_for_model = self.data_config['feature_engineering']['input_features']
-        if self.data_config['feature_engineering']['include_w_over_l']:
-            self.features_for_model.append('wOverL')  # Dynamically add if needed
+        self.features_for_model = self.config['feature_engineering']['input_features'][:]
+        if self.config['feature_engineering']['include_w_over_l']:
+            self.features_for_model.append('wOverL')
 
-        self.target_feature = self.data_config['normalization']['target_feature']  # 'log_Id'
-        self.stratify_column = self.data_config['region_classification']['stratify_column']  # 'operating_region'
+        self.target_feature = self.config['normalization']['target_feature']
+        self.stratify_column = self.config['region_classification']['stratify_column']
 
         # Processed data components (will be set after preparation or loading)
         self.X_cv_scaled = None
@@ -45,10 +42,11 @@ class DataPreprocessor:  # Renamed from DataProcessor for clarity of responsibil
         self.y_final_test_scaled = None
         self.X_final_test_original_df = None
 
-    def _load_config(self, config_path):
-        """Loads a YAML configuration file."""
-        with open(config_path, 'r') as f:
-            return yaml.safe_load(f)
+    # Remove _load_config as the data is passed directly
+    # def _load_config(self, config_path):
+    #     """Loads a YAML configuration file."""
+    #     with open(config_path, 'r') as f:
+    #         return yaml.safe_load(f)
 
     def _apply_filters(self, df):
         """Applies filters based on data_config."""
@@ -56,17 +54,17 @@ class DataPreprocessor:  # Renamed from DataProcessor for clarity of responsibil
         filtered_df = df.copy()
 
         # Id > 0
-        if self.data_config['filtering']['id_greater_than_zero']:
+        if self.config['filtering']['id_greater_than_zero']:
             filtered_df = filtered_df[filtered_df['id'] > 0].copy()
             print(f"  - After Id > 0 filter: {len(filtered_df)} rows")
 
         # Vd > 0
-        if self.data_config['filtering']['vds_greater_than_zero']:
+        if self.config['filtering']['vds_greater_than_zero']:
             filtered_df = filtered_df[filtered_df['vd'] > 0].copy()
             print(f"  - After Vd > 0 filter: {len(filtered_df)} rows")
 
         # Temperature filter
-        temp_filter = self.data_config['filtering'].get('temperature_filter')
+        temp_filter = self.config['filtering'].get('temperature_filter')
         if temp_filter is not None:
             filtered_df = filtered_df[filtered_df['temp'] == temp_filter].copy()
             print(f"  - After Temp = {temp_filter}C filter: {len(filtered_df)} rows")
@@ -79,12 +77,12 @@ class DataPreprocessor:  # Renamed from DataProcessor for clarity of responsibil
         engineered_df = df.copy()
 
         # Add W/L feature
-        if self.data_config['feature_engineering']['include_w_over_l']:
+        if self.config['feature_engineering']['include_w_over_l']:
             engineered_df['wOverL'] = engineered_df['w'] / engineered_df['l']
             print("  - Added 'wOverL' feature.")
 
         # Log transform for Id
-        if self.data_config['normalization']['log_transform_id']:
+        if self.config['normalization']['log_transform_id']:
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", RuntimeWarning)  # Ignore log of zero/negative warnings
                 engineered_df['log_Id'] = np.log10(engineered_df['id'])
@@ -94,7 +92,7 @@ class DataPreprocessor:  # Renamed from DataProcessor for clarity of responsibil
         engineered_df['vsb'] = -engineered_df['vb']  # Source-to-bulk voltage
 
         # Parameters for Vth calculation from config
-        vth_params = self.data_config['region_classification']['vth_params']
+        vth_params = self.config['region_classification']['vth_params']
         engineered_df['vth'] = engineered_df['vsb'].apply(
             lambda x: calculate_vth(x,
                                     vth0=vth_params['vth0'],
@@ -125,6 +123,7 @@ class DataPreprocessor:  # Renamed from DataProcessor for clarity of responsibil
         print("\nStarting Data Processing Pipeline...")
 
         # Check if processed data exists and if we should skip reprocessing
+        # Use self.processed_data_dir (which is now a Path object)
         if not force_reprocess and self._check_processed_data_exists(self.processed_data_dir):
             if self.load_processed_data(self.processed_data_dir):
                 print("Using existing processed data.")
@@ -133,6 +132,7 @@ class DataPreprocessor:  # Renamed from DataProcessor for clarity of responsibil
                 print("Failed to load existing processed data. Reprocessing.")
 
         print("No processed data found or reprocessing forced. Starting from raw data.")
+        # raw_data_path is now a Path object, DataLoader should be able to handle it
         data_loader = DataLoader(self.raw_data_path)
         raw_df = data_loader.load_raw_data()
 
@@ -141,7 +141,7 @@ class DataPreprocessor:  # Renamed from DataProcessor for clarity of responsibil
             return False
 
         print("Applying filters...")
-        self.df = self._apply_filters(raw_df)  # Store the initially filtered data as self.df
+        self.df = self._apply_filters(raw_df)
 
         if self.df.empty:
             print("No data remaining after filtering. Cannot proceed.")
@@ -156,9 +156,10 @@ class DataPreprocessor:  # Renamed from DataProcessor for clarity of responsibil
 
         # Now perform the split and scaling
         print("\nPerforming initial stratified split (CV Pool - Final Test Set)")
-        cv_test_split_ratio = self.data_config['data_split']['cv_final_test_split_ratio']
-        n_splits_cv = self.data_config['data_split']['num_folds']
-        random_state = self.data_config['data_split']['random_state']
+        # Get parameters from self.data_config (which was passed in __init__)
+        cv_test_split_ratio = self.config['data_split']['cv_final_test_split_ratio']
+        n_splits_cv = self.config['data_split']['num_folds']
+        random_state = self.config['data_split']['random_state']
 
         X_full = self.filtered_original_df[self.features_for_model]
         y_full = self.filtered_original_df[self.target_feature].values.reshape(-1, 1)
@@ -174,7 +175,7 @@ class DataPreprocessor:  # Renamed from DataProcessor for clarity of responsibil
         self.X_final_test_original_df = self.filtered_original_df.loc[idx_final_test].copy()
 
         # Initialize and fit scalers
-        self.scaler_X = StandardScaler()  # From data_config['normalization']['method'] if you want to generalize
+        self.scaler_X = StandardScaler()
         self.X_cv_scaled = self.scaler_X.fit_transform(X_cv_pool)
 
         self.scaler_y = StandardScaler()
@@ -193,57 +194,63 @@ class DataPreprocessor:  # Renamed from DataProcessor for clarity of responsibil
         self.cv_fold_indices = list(skf.split(self.X_cv_scaled, cv_pool_stratify_labels))
         print(f"Generated {len(self.cv_fold_indices)} CV folds.")
 
+        # save_processed_data now takes a Path object
         self.save_processed_data(self.processed_data_dir)
         print("\nData preparation complete.")
         return True
 
     # --- Persistence Methods ---
-    def _check_processed_data_exists(self, path):
+    # Update _check_processed_data_exists and save/load to expect Path objects
+    def _check_processed_data_exists(self, path: Path): # Type hint for clarity
         """Checks if all expected processed data files exist."""
         expected_files = [
             'x_cv_scaled.pkl', 'y_cv_scaled.pkl', 'x_cv_original_df.pkl', 'cv_fold_indices.pkl',
             'X_final_test_scaled.pkl', 'y_final_test_scaled.pkl', 'X_final_test_original_df.pkl',
             'scaler_x.pkl', 'scaler_y.pkl', 'filtered_original_df.pkl'
         ]
-        return all(os.path.exists(os.path.join(path, f)) for f in expected_files)
+        return all((path / f).exists() for f in expected_files) # Use Path operations
 
-    def save_processed_data(self, save_path):
+    def save_processed_data(self, save_path: Path): # Type hint for clarity
         """Saves processed data and scalers to disk."""
-        os.makedirs(save_path, exist_ok=True)
-        # Note: Using attribute names for consistency
-        joblib.dump(self.X_cv_scaled, os.path.join(save_path, 'x_cv_scaled.pkl'))
-        joblib.dump(self.y_cv_scaled, os.path.join(save_path, 'y_cv_scaled.pkl'))
-        joblib.dump(self.X_cv_original_df, os.path.join(save_path, 'x_cv_original_df.pkl'))
-        joblib.dump(self.cv_fold_indices, os.path.join(save_path, 'cv_fold_indices.pkl'))
+        os.makedirs(save_path, exist_ok=True) # os.makedirs works with Path objects
+        # Use Path / operator for joining
+        joblib.dump(self.X_cv_scaled, save_path / 'x_cv_scaled.pkl')
+        joblib.dump(self.y_cv_scaled, save_path / 'y_cv_scaled.pkl')
+        joblib.dump(self.X_cv_original_df, save_path / 'x_cv_original_df.pkl')
+        joblib.dump(self.cv_fold_indices, save_path / 'cv_fold_indices.pkl')
 
-        joblib.dump(self.X_final_test_scaled, os.path.join(save_path, 'X_final_test_scaled.pkl'))
-        joblib.dump(self.y_final_test_scaled, os.path.join(save_path, 'y_final_test_scaled.pkl'))
-        joblib.dump(self.X_final_test_original_df, os.path.join(save_path, 'X_final_test_original_df.pkl'))
+        joblib.dump(self.X_final_test_scaled, save_path / 'X_final_test_scaled.pkl')
+        joblib.dump(self.y_final_test_scaled, save_path / 'y_final_test_scaled.pkl')
+        joblib.dump(self.X_final_test_original_df, save_path / 'X_final_test_original_df.pkl')
 
-        joblib.dump(self.scaler_X, os.path.join(save_path, 'scaler_x.pkl'))
-        joblib.dump(self.scaler_y, os.path.join(save_path, 'scaler_y.pkl'))
-        joblib.dump(self.filtered_original_df, os.path.join(save_path, 'filtered_original_df.pkl'))
+        joblib.dump(self.scaler_X, save_path / 'scaler_x.pkl')
+        joblib.dump(self.scaler_y, save_path / 'scaler_y.pkl')
+        joblib.dump(self.filtered_original_df, save_path / 'filtered_original_df.pkl')
         print(f"Processed data and scalers saved to {save_path}")
 
-    def load_processed_data(self, load_path):
+    def load_processed_data(self, load_path: Path): # Type hint for clarity
         """Loads processed data and scalers from disk."""
         try:
-            self.X_cv_scaled = joblib.load(os.path.join(load_path, 'x_cv_scaled.pkl'))
-            self.y_cv_scaled = joblib.load(os.path.join(load_path, 'y_cv_scaled.pkl'))
-            self.X_cv_original_df = joblib.load(os.path.join(load_path, 'x_cv_original_df.pkl'))
-            self.cv_fold_indices = joblib.load(os.path.join(load_path, 'cv_fold_indices.pkl'))
+            # Use Path / operator for joining
+            self.X_cv_scaled = joblib.load(load_path / 'x_cv_scaled.pkl')
+            self.y_cv_scaled = joblib.load(load_path / 'y_cv_scaled.pkl')
+            self.X_cv_original_df = joblib.load(load_path / 'x_cv_original_df.pkl')
+            self.cv_fold_indices = joblib.load(load_path / 'cv_fold_indices.pkl')
 
-            self.X_final_test_scaled = joblib.load(os.path.join(load_path, 'X_final_test_scaled.pkl'))
-            self.y_final_test_scaled = joblib.load(os.path.join(load_path, 'y_final_test_scaled.pkl'))
-            self.X_final_test_original_df = joblib.load(os.path.join(load_path, 'X_final_test_original_df.pkl'))
+            self.X_final_test_scaled = joblib.load(load_path / 'X_final_test_scaled.pkl')
+            self.y_final_test_scaled = joblib.load(load_path / 'y_final_test_scaled.pkl')
+            self.X_final_test_original_df = joblib.load(load_path / 'X_final_test_original_df.pkl')
 
-            self.scaler_X = joblib.load(os.path.join(load_path, 'scaler_x.pkl'))
-            self.scaler_y = joblib.load(os.path.join(load_path, 'scaler_y.pkl'))
-            self.filtered_original_df = joblib.load(os.path.join(load_path, 'filtered_original_df.pkl'))
+            self.scaler_X = joblib.load(load_path / 'scaler_x.pkl')
+            self.scaler_y = joblib.load(load_path / 'scaler_y.pkl')
+            self.filtered_original_df = joblib.load(load_path / 'filtered_original_df.pkl')
             print(f"Processed data and scalers loaded from {load_path}")
             return True
         except FileNotFoundError:
             print(f"No processed data found at {load_path}. Cannot load.")
+            return False
+        except Exception as e:
+            print(f"Error loading processed data from {load_path}: {e}")
             return False
 
     # GETTERS (remain largely the same)
@@ -274,5 +281,5 @@ class DataPreprocessor:  # Renamed from DataProcessor for clarity of responsibil
         if self.filtered_original_df is None:
             # If not loaded or processed yet, trigger full processing
             print("Full filtered data not available, attempting to process...")
-            self.load_or_process_data()
+            self.load_or_process_data() # This will use its internal config
         return self.filtered_original_df

@@ -1,0 +1,130 @@
+# scripts/run_evaluation_on_model.py - Evaluates the final trained model and generates plots
+import torch
+import torch.nn as nn
+import os
+import sys
+import warnings
+import matplotlib
+
+matplotlib.use('Agg')  # Use 'Agg' backend for non-interactive plotting
+import pandas as pd
+
+# Append the parent directory to the system path to allow module imports
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from src.data_processing.preprocessor import DataProcessor
+from src.models.simple_nn import SimpleNN
+from src.evaluation.evaluator import NNEvaluator
+from src.utils.plotter import Plotter
+from src.utils.helpers import load_config, setup_environment, determine_characteristic_plot_cases
+
+
+def run_evaluation():
+    """
+    This script orchestrates the final evaluation of a pre-trained model.
+    It loads processed data, loads a saved model, evaluates its performance
+    on the final held-out test set, and generates key characteristic plots.
+    """
+    print("--- Starting Model Evaluation Script ---")
+
+    # --- Load Configurations and Setup Environment ---
+    main_config_path = 'config/main_config.yaml'
+    data_config_path = 'config/data_config.yaml'
+
+    main_config = load_config(main_config_path)
+    data_config = load_config(data_config_path)
+
+    if not main_config or not data_config:
+        print("Error: Could not load configuration files. Exiting.")
+        return
+
+    # Set up global environment settings
+    setup_environment(main_config_path)
+
+    # --- Extract relevant configurations ---
+    processed_data_dir = main_config['paths']['processed_data_dir']
+    trained_model_dir = main_config['paths']['trained_model_dir']
+    report_output_dir = main_config['paths']['report_output_dir']
+    plots_output_dir = os.path.join(report_output_dir, 'final_model_evaluation')
+
+    # Ensure plots directory exists
+    os.makedirs(plots_output_dir, exist_ok=True)
+
+    # --- Load Processed Data ---
+    print("\n--- Loading Processed Data ---")
+    dp = DataProcessor(None)
+    if not dp.load_processed_data(processed_data_dir):
+        print(f"Error: Processed data not found in {processed_data_dir}.")
+        print("Please run the `prepare_data.py` script first to generate it.")
+        return
+
+    features_for_model = dp.get_features_for_model()
+    nn_input_dim = len(features_for_model)
+
+    # --- Load Trained Model ---
+    print("\n--- Loading Trained Model ---")
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print(f"Using device: {device}")
+
+    model_path = os.path.join(trained_model_dir, 'final_simple_nn.pth')
+    if not os.path.exists(model_path):
+        print(f"Error: Trained model not found at {model_path}.")
+        print("Please run the `train_model.py` script first to train and save the model.")
+        return
+
+    print(f"Loading final trained model from: {model_path}")
+    model = SimpleNN(input_dim=nn_input_dim).to(device)
+    model.load_state_dict(torch.load(model_path, map_location=device))
+    model.eval()
+
+    # --- Evaluate on Final Test Set ---
+    print("\n--- Evaluating on Final Test Set ---")
+    X_test_scaled, y_test_scaled, X_test_original_df = dp.get_final_test_data()
+    evaluator = NNEvaluator(model, device, *dp.get_scalers())
+
+    # The evaluator returns a dictionary of metrics
+    results = evaluator.evaluate_model(
+        torch.tensor(X_test_scaled, dtype=torch.float32),
+        torch.tensor(y_test_scaled, dtype=torch.float32),
+        X_test_original_df
+    )
+
+    print("Final Test Set Evaluation Results:")
+    for metric, value in results.items():
+        if isinstance(value, float):
+            print(f"  {metric}: {value:.4e}")
+        else:
+            print(f"  {metric}: {value}")
+
+    # --- Generate Characteristic Plots ---
+    print("\n--- Generating Characteristic Plots ---")
+
+    # The `determine_characteristic_plot_cases` function helps identify valid plotting cases
+    # from the original data based on device size and temperature
+    plot_cases = determine_characteristic_plot_cases(dp.get_filtered_original_data())
+
+    if not plot_cases:
+        print("Skipping plot generation: No valid cases could be determined from the data.")
+        return
+
+    plotter = Plotter(
+        scaler_X=dp.get_scalers()[0],
+        scaler_y=dp.get_scalers()[1],
+        features_for_model=features_for_model,
+        device=device
+    )
+
+    plotter.id_vds_characteristics(
+        model=model,
+        full_original_data_for_plot=dp.get_filtered_original_data(),
+        cases_config_for_best_worst_plots=plot_cases,
+        model_name="SimpleNN (Final Model)",
+        output_dir=plots_output_dir
+    )
+
+    print(f"\nEvaluation and plots complete. Results saved to: {plots_output_dir}")
+    print("--- Model Evaluation Script Finished ---")
+
+
+if __name__ == "__main__":
+    run_evaluation()
