@@ -2,68 +2,41 @@
 import torch
 import torch.nn as nn
 import os
-import yaml  # For loading config
-from datetime import datetime
 
 # Import modular components from src
-from src.data_processing.preprocessor import DataProcessor
+from src.data_processing.preprocessor import DataPreprocessor
 from src.models.simple_nn import SimpleNN
-from src.training.simple_nn_trainer import NNTrainer  # Or a more general Trainer
+from src.training.simple_nn_trainer import NNTrainer
 from src.evaluation.evaluator import NNEvaluator
-from src.cross_validation.cv_runner import PyTorchCrossValidator  # Renamed
+from src.cross_validation.cv_runner import
 from src.utils.plotter import Plotter
-from src.utils.helpers import setup_environment, load_config  # New helper
+from src.utils.helpers import setup_environment
+from src.config import settings
 
 
 def main():
-    # --- 1. Load Configuration ---
-    config = load_config('config/simple_nn_config.yaml')  # Load specific config for SimpleNN
-    main_config = load_config('config/main_config.yaml')  # Load main project config (paths)
+    setup_environment()
 
-    # Use config values
-    RAW_DATA_PATH = main_config['paths']['raw_data_path']
-    PROCESSED_DATA_DIR = main_config['paths']['processed_data_dir']
-    TRAINED_MODEL_DIR = main_config['paths']['trained_model_dir']
-    REPORT_OUTPUT_DIR = main_config['paths']['report_output_dir']
-
-    CV_FINAL_TEST_SPLIT_RATIO = config['data']['cv_final_test_split_ratio']
-    NUM_FOLDS = config['data']['num_folds']
-
-    NN_INPUT_DIM = config['model']['input_dim']
-    NN_NUM_EPOCHS = config['training']['num_epochs']
-    NN_BATCH_SIZE = config['training']['batch_size']
-    NN_LEARNING_RATE = config['training']['learning_rate']
-    SKIP_TRAINING_IF_EXISTS = config['flags']['skip_training_if_exists']
-    SKIP_PLOTS_IF_EXISTS = config['flags']['skip_plots_if_exists']
-    CASES_CONFIG_FOR_PLOTS = config['plots']['cases_config_for_best_worst_plots']  # From config now
-
-    setup_environment(REPORT_OUTPUT_DIR)  # Utility function
-
-    # --- 2. Data Loading and Processing ---
+    # --- Data Loading and Processing ---
     # This step could be its own script (run_data_processing.py) if data processing is complex and takes long
     # For now, keep it here for this script's completeness
-    dp = DataProcessor(RAW_DATA_PATH)
-    if not dp.load_processed_data(PROCESSED_DATA_DIR):
+    dp = DataPreprocessor()
+    if not dp.load_processed_data():
         print("Processed data not found, preparing new sets...")
-        dp.prepare_cv_and_final_test_sets(
-            cv_test_split_ratio=CV_FINAL_TEST_SPLIT_RATIO,
-            n_splits_cv=NUM_FOLDS,
-            random_state=42,
-            save_path=PROCESSED_DATA_DIR
-        )
+        dp.load_or_process_data()
     else:
-        print(f"Loaded processed data from {PROCESSED_DATA_DIR}")
+        print(f"Loaded processed data from {settings.get("processed_data_folder")}")
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Using device: {device}")
 
     # --- 3. Run Cross-Validation ---
     # Only run if `config['cv']['run_cv']` is true
-    if config['cv']['run_cv']:  # New config flag
+    if settings.get('run_cv'):
         model_config_cv = {
             'name': 'SimpleNN',
             'model_class': SimpleNN,
-            'model_params': {'input_dim': NN_INPUT_DIM},
+            'model_params': {'input_dim': settings.get("nn_input_dim")},
             'trainer_class': NNTrainer,  # Consider making Trainer more generic
             'trainer_params': {'optimizer_params': {'lr': NN_LEARNING_RATE}},
             'evaluator_class': NNEvaluator

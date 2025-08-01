@@ -1,59 +1,28 @@
 # src/utils/helpers.py
-
 import pandas as pd
 import numpy as np
 import os
-import yaml
-import warnings
 import matplotlib.pyplot as plt
+from src.config import settings
 
 
-def load_config(config_path):
-    """
-    Loads a YAML configuration file.
-
-    Args:
-        config_path (str): The path to the YAML configuration file.
-
-    Returns:
-        dict: The loaded configuration dictionary.
-    """
-    try:
-        with open(config_path, 'r') as f:
-            config = yaml.safe_load(f)
-        return config
-    except FileNotFoundError:
-        print(f"Error: Config file not found at {config_path}")
-        return {}
-    except yaml.YAMLError as e:
-        print(f"Error parsing YAML file {config_path}: {e}")
-        return {}
-
-
-def setup_environment(main_config_path):
+def setup_environment():
     """
     Sets up matplotlib environment based on global settings from main_config.yaml
     and creates the base report output directory.
 
     Args:
-        main_config_path (str): Path to the main_config.yaml file.
     """
     # Load global settings from main_config.yaml
-    main_config = load_config(main_config_path)
-    global_settings = main_config.get('global_settings', {})
-    report_output_dir = main_config['paths']['report_output_dir']
+    report_output_dir = settings.get('report_output_dir')
 
     # Apply Matplotlib style and parameters
-    plt.style.use(global_settings.get('matplotlib_style', 'default'))
-    plt.rcParams['figure.figsize'] = global_settings.get('figure_figsize', [10, 8])
-    plt.rcParams['font.size'] = global_settings.get('font_size', 8)
-    plt.rcParams['axes.labelsize'] = global_settings.get('axes_labelsize', 10)  # Added for better control
-    plt.rcParams['axes.titlesize'] = global_settings.get('axes_titlesize', 12)  # Added for better control
-    plt.rcParams['legend.fontsize'] = global_settings.get('legend_fontsize', 8)  # Added for better control
-
-    # Configure warning filtering
-    if global_settings.get('ignore_warnings', False):
-        warnings.filterwarnings('ignore')  # Use with caution!
+    plt.style.use(settings.get('matplotlib_style'))
+    plt.rcParams['figure.figsize'] = settings.get('figure_figsize')
+    plt.rcParams['font.size'] = settings.get('font_size')
+    plt.rcParams['axes.labelsize'] =settings.get('axes_labelsize')
+    plt.rcParams['axes.titlesize'] = settings.get('axes_titlesize')
+    plt.rcParams['legend.fontsize'] = settings.get('legend_fontsize')
 
     # Ensure the base report output directory exists
     os.makedirs(report_output_dir, exist_ok=True)

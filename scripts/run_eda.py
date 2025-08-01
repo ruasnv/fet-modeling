@@ -7,13 +7,13 @@ import matplotlib  # Ensure matplotlib is imported for backend setting
 
 # Append the parent directory to the system path to allow module imports
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
 # Use 'Agg' backend for non-interactive plotting
 matplotlib.use('Agg')
 
 # Import the new EDA package and helper functions
 from src.eda.analyzer import EDAAnalyzer
-from src.utils.helpers import load_config, setup_environment
+from src.utils.helpers import setup_environment
+from src.config import settings
 
 
 def run_eda():
@@ -25,24 +25,12 @@ def run_eda():
     All terminal output is redirected to a log file within the EDA output directory.
     """
     print("--- Starting EDA Script ---")
-
-    # --- Load Configuration ---
-    main_config_path = 'config/main_config.yaml'
-    data_config_path = 'config/data_config.yaml'
-
-    main_config = load_config(main_config_path)
-    data_config = load_config(data_config_path)
-
-    if not main_config or not data_config:
-        print("Failed to load configurations. Exiting EDA.")
-        return
-
     # Extract paths from configurations
-    raw_data_path = main_config['paths']['raw_data_path']
-    eda_output_dir = main_config['paths']['eda_output_dir']
+    raw_data_path = settings.get("raw_data_path")
+    eda_output_dir = settings.get("eda_output_dir")
 
     # --- Setup Environment (Matplotlib style, output directories, warnings) ---
-    setup_environment(main_config_path)
+    setup_environment()
 
     # --- Data Loading ---
     # Robust path checking as per your original script
@@ -77,11 +65,10 @@ def run_eda():
             print(f"Raw data loaded from: {raw_data_path}")
             print(f"EDA outputs saved to: {eda_output_dir}")
             print(
-                f"Temperature filter for region classification: {data_config['data_filtering']['temperature_filter']}°C")
-            print(f"Approximate Vth used for region classification: {data_config['vth_calculation']['vth0_approx']}V")
+                f"Temperature filter for region classification: {settings.get('temperature_filter')}°C")
 
             # Initialize and run the EDAAnalyzer
-            analyzer = EDAAnalyzer(df, main_config, data_config)
+            analyzer = EDAAnalyzer(df)
             analyzer.run_all_eda()
 
     except Exception as e:

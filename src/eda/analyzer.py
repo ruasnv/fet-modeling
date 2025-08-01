@@ -1,17 +1,16 @@
 # src/eda/analyzer.py - Core EDA functionality
 import pandas as pd
 import numpy as np
-import matplotlib
 import matplotlib.pyplot as plt
 import seaborn as sns
 import warnings
 import os
-from datetime import datetime
+from src.config import settings
 
 # Import custom helpers from the same src directory
 # Note: calculate_vth is imported but not directly used for region classification in EDA,
 # as per the original script's use of VTH_APPROX_EDA.
-from src.utils.helpers import classify_region
+from src.utils.helpers import classify_region, setup_environment
 
 
 class EDAAnalyzer:
@@ -23,38 +22,27 @@ class EDAAnalyzer:
     making the main script clean and focused on orchestration.
     """
 
-    def __init__(self, df, main_config, data_config):
+    def __init__(self, df):
         """
         Initializes the EDAAnalyzer with the dataset and configurations.
 
         Args:
             df (pd.DataFrame): The input pandas DataFrame.
-            main_config (dict): Main configuration settings (paths, global plot settings).
-            data_config (dict): Data-specific configuration settings (filters, vth params).
         """
         self.df = df
-        self.main_config = main_config
-        self.data_config = data_config
-        self.output_dir = self.main_config['paths']['eda_output_dir']
+        self.output_dir = settings.get('output_dir')
 
         # Ensure output directory exists
         os.makedirs(self.output_dir, exist_ok=True)
+        setup_environment()
 
-        # Apply global plotting settings (redundant if setup_environment is called outside,
-        # but good for standalone EDAAnalyzer use)
-        plt.style.use(self.main_config['global_settings']['matplotlib_style'])
-        plt.rcParams['figure.figsize'] = self.main_config['global_settings']['figure_figsize']
-        plt.rcParams['font.size'] = self.main_config['global_settings']['font_size']
-        plt.rcParams['axes.labelsize'] = self.main_config['global_settings']['axes_labelsize']
-        plt.rcParams['axes.titlesize'] = self.main_config['global_settings']['axes_titlesize']
-        plt.rcParams['legend.fontsize'] = self.main_config['global_settings']['legend_fontsize']
-
-        if self.main_config['global_settings']['ignore_warnings']:
+        if settings.get("ignore_warnings"):
             warnings.filterwarnings('ignore')
 
         # Specific EDA parameters from data_config
-        self.temp_filter_eda = self.data_config['data_filtering']['temperature_filter']
-        self.vth_approx_eda = self.data_config['vth_calculation']['vth0_approx']
+        self.temp_filter_eda = settings.get("temp_filter_eda")
+        #TODO: Not existing
+        self.vth_approx_eda = settings.get("vth_approx_eda")
 
     def run_all_eda(self):
         """
@@ -131,16 +119,19 @@ class EDAAnalyzer:
             l_um = row['l'] * 1e6
             print(f"  [{i + 1:2d}] W={w_um:.2f} µm, L={l_um:.2f} µm")
 
-        temp_counts_by_size = self.df.groupby(['w', 'l'])['temp'].nunique().reset_index(name='temp_count')
-        device_data_counts_by_size = self.df.groupby(['w', 'l']).size().reset_index(name='data_point_count')
+        temp_counts_by_size = self.df.groupby(['w', 'l'])['temp'].nunique().reset_index(names='temp_count')
+        device_data_counts_by_size = self.df.groupby(['w', 'l']).size().reset_index(names='data_point_count')
 
         temp_pivot = temp_counts_by_size.pivot(index='l', columns='w', values='temp_count').fillna(0)
         data_count_pivot = device_data_counts_by_size.pivot(index='l', columns='w', values='data_point_count').fillna(0)
 
         temp_pivot.columns = [f"{col * 1e6:.2f} µm" for col in temp_pivot.columns]
         temp_pivot.index = [f"{idx * 1e6:.2f} µm" for idx in temp_pivot.index]
+        data_count_pivot.columns = data_count_pivot.columns.astype(float)
+        data_count_pivot.index = data_count_pivot.index.astype(float)
         data_count_pivot.columns = [f"{col * 1e6:.2f} µm" for col in data_count_pivot.columns]
         data_count_pivot.index = [f"{idx * 1e6:.2f} µm" for idx in data_count_pivot.index]
+
 
         plt.figure(figsize=(10, 7))
         sns.heatmap(temp_pivot, annot=True, cmap='viridis', fmt='.0f', linewidths=.5)

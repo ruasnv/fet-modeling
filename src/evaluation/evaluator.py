@@ -28,8 +28,8 @@ class NNEvaluator:
         Calculates and prints metrics on both the scaled (log_Id) and original (Id) scales.
 
         Args:
-            X_test_scaled (np.ndarray): Scaled test features (input to the model).
-            y_test_scaled (np.ndarray): Scaled test target (log_Id, what the model predicts).
+            X_test_scaled : Scaled test features (input to the model).
+            y_test_scaled : Scaled test target (log_Id, what the model predicts).
 
         Returns:
             dict: A dictionary containing various metrics:

@@ -5,8 +5,6 @@ import sys
 # Ensure the project root is in the path for module imports
 # This is crucial for `from src.config import settings` to work when running from scripts/
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
-from src.config import settings # Import the global settings object
 from src.data_processing.preprocessor import DataPreprocessor
 
 def run_preprocess_data(force_reprocess=False):
@@ -19,12 +17,7 @@ def run_preprocess_data(force_reprocess=False):
 
     # Pass the relevant *parts* of the global config data to DataPreprocessor
     # DataPreprocessor will then use these dictionaries internally.
-    dp = DataPreprocessor(config_data=settings.all_config)
-
-    # Simplified approach: DataPreprocessor just needs the full merged config
-    # and extracts what it needs. This is cleaner.
-    # dp = DataPreprocessor(config_data=settings.all_config) # See next section for this simplified __init__
-
+    dp: DataPreprocessor = DataPreprocessor()
     # Call the load_or_process_data method which handles checking existing data,
     # processing, and saving.
     if dp.load_or_process_data(force_reprocess=force_reprocess):

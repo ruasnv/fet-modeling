@@ -5,19 +5,17 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="b5f4bcab-7aa4-488b-9a35-1f08825f1ac3" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/scripts/run_evaluation_on_model.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/config.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/eda/analyzer.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/config.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/simple_nn_config.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/config/simple_nn_config.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/scripts/eda.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/run_eda.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/scripts/evaluate_model.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/augmentation.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/scripts/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/run_old_main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/scripts/run_augmentation.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/eda/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/scripts/run_data_processing.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/run_data_processing.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/scripts/train_simple_nn.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/run_training_simple_nn.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scripts/run_eda.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/run_eda.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scripts/run_evaluation_on_model.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/run_evaluation_on_model.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scripts/run_training_simple_nn.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/run_training_simple_nn.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/cross_validation/cv_runner.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/cross_validation/cv_runner.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/data_processing/preprocessor.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/data_processing/preprocessor.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/eda/analyzer.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/eda/analyzer.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/evaluation/evaluator.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/evaluation/evaluator.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/utils/helpers.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/utils/helpers.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -148,7 +146,8 @@
       <workItem from="1753616043924" duration="140000" />
       <workItem from="1753910934363" duration="1005000" />
       <workItem from="1753969986562" duration="12052000" />
-      <workItem from="1754059235172" duration="6187000" />
+      <workItem from="1754059235172" duration="6300000" />
+      <workItem from="1754082441567" duration="3128000" />
     </task>
     <servers />
   </component>
@@ -179,9 +178,14 @@
           <option name="timeStamp" value="26" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/src/cross_validation/cv_runner.py</url>
-          <line>55</line>
-          <option name="timeStamp" value="28" />
+          <url>file://$PROJECT_DIR$/src/eda/analyzer.py</url>
+          <line>44</line>
+          <option name="timeStamp" value="31" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/scripts/run_training_simple_nn.py</url>
+          <line>10</line>
+          <option name="timeStamp" value="33" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

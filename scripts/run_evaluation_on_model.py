@@ -1,22 +1,19 @@
 # scripts/run_evaluation_on_model.py - Evaluates the final trained model and generates plots
 import torch
-import torch.nn as nn
 import os
 import sys
-import warnings
 import matplotlib
-
 matplotlib.use('Agg')  # Use 'Agg' backend for non-interactive plotting
-import pandas as pd
 
 # Append the parent directory to the system path to allow module imports
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from src.data_processing.preprocessor import DataProcessor
+from src.data_processing.preprocessor import DataPreprocessor
 from src.models.simple_nn import SimpleNN
 from src.evaluation.evaluator import NNEvaluator
 from src.utils.plotter import Plotter
-from src.utils.helpers import load_config, setup_environment, determine_characteristic_plot_cases
+from src.utils.helpers import setup_environment, determine_characteristic_plot_cases
+from src.config import settings
 
 
 def run_evaluation():
@@ -26,25 +23,13 @@ def run_evaluation():
     on the final held-out test set, and generates key characteristic plots.
     """
     print("--- Starting Model Evaluation Script ---")
-
-    # --- Load Configurations and Setup Environment ---
-    main_config_path = 'config/main_config.yaml'
-    data_config_path = 'config/data_config.yaml'
-
-    main_config = load_config(main_config_path)
-    data_config = load_config(data_config_path)
-
-    if not main_config or not data_config:
-        print("Error: Could not load configuration files. Exiting.")
-        return
-
     # Set up global environment settings
-    setup_environment(main_config_path)
+    setup_environment()
 
     # --- Extract relevant configurations ---
-    processed_data_dir = main_config['paths']['processed_data_dir']
-    trained_model_dir = main_config['paths']['trained_model_dir']
-    report_output_dir = main_config['paths']['report_output_dir']
+    processed_data_dir = settings.get('processed_data_dir')
+    trained_model_dir = settings.get('trained_model_dir')
+    report_output_dir = settings.get('report_output_dir')
     plots_output_dir = os.path.join(report_output_dir, 'final_model_evaluation')
 
     # Ensure plots directory exists
@@ -52,7 +37,7 @@ def run_evaluation():
 
     # --- Load Processed Data ---
     print("\n--- Loading Processed Data ---")
-    dp = DataProcessor(None)
+    dp = DataPreprocessor()
     if not dp.load_processed_data(processed_data_dir):
         print(f"Error: Processed data not found in {processed_data_dir}.")
         print("Please run the `prepare_data.py` script first to generate it.")
@@ -86,7 +71,6 @@ def run_evaluation():
     results = evaluator.evaluate_model(
         torch.tensor(X_test_scaled, dtype=torch.float32),
         torch.tensor(y_test_scaled, dtype=torch.float32),
-        X_test_original_df
     )
 
     print("Final Test Set Evaluation Results:")

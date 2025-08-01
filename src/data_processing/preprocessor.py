@@ -3,34 +3,34 @@ import os
 import warnings
 import joblib
 import numpy as np
-import yaml # Still needed for _load_config if you keep that helper, but better to remove it
+import path
 from sklearn.model_selection import StratifiedKFold, train_test_split
 from sklearn.preprocessing import StandardScaler
 from .data_loader import DataLoader # Use relative import if data_loader.py is in the same package
 from src.utils.helpers import calculate_vth, classify_region
+from src.config import settings
 
 class DataPreprocessor:
-    def __init__(self, config_data: dict): # Just takes one merged config dictionary
+    def __init__(self): # Just takes one merged config dictionary
         """
         Initializes the DataPreprocessor with the complete merged configuration data.
         """
-        self.config = config_data # Store the full merged config
 
         # Access all parameters from the single merged config
-        self.raw_data_path = self.config['paths']['raw_data_path']
-        self.processed_data_dir = self.config['paths']['processed_data_dir']
+        self.raw_data_path = settings.get('raw_data_path')
+        self.processed_data_dir = settings.get('processed_data_dir')
 
         self.df = None
         self.filtered_original_df = None
         self.scaler_X = None
         self.scaler_y = None
 
-        self.features_for_model = self.config['feature_engineering']['input_features'][:]
-        if self.config['feature_engineering']['include_w_over_l']:
+        self.features_for_model = settings.get('features_for_model')
+        if settings.get('include_w_over_l'):
             self.features_for_model.append('wOverL')
 
-        self.target_feature = self.config['normalization']['target_feature']
-        self.stratify_column = self.config['region_classification']['stratify_column']
+        self.target_feature = settings.get('target_feature')
+        self.stratify_column = settings.get('stratify_column')
 
         # Processed data components (will be set after preparation or loading)
         self.X_cv_scaled = None
@@ -54,17 +54,17 @@ class DataPreprocessor:
         filtered_df = df.copy()
 
         # Id > 0
-        if self.config['filtering']['id_greater_than_zero']:
+        if settings.get('id_greater_than_zero'):
             filtered_df = filtered_df[filtered_df['id'] > 0].copy()
             print(f"  - After Id > 0 filter: {len(filtered_df)} rows")
 
         # Vd > 0
-        if self.config['filtering']['vds_greater_than_zero']:
+        if settings.get('vds_greater_than_zero'):
             filtered_df = filtered_df[filtered_df['vd'] > 0].copy()
             print(f"  - After Vd > 0 filter: {len(filtered_df)} rows")
 
         # Temperature filter
-        temp_filter = self.config['filtering'].get('temperature_filter')
+        temp_filter = settings.get('temperature_filter')
         if temp_filter is not None:
             filtered_df = filtered_df[filtered_df['temp'] == temp_filter].copy()
             print(f"  - After Temp = {temp_filter}C filter: {len(filtered_df)} rows")
@@ -77,12 +77,12 @@ class DataPreprocessor:
         engineered_df = df.copy()
 
         # Add W/L feature
-        if self.config['feature_engineering']['include_w_over_l']:
+        if settings.get('include_w_over_l'):
             engineered_df['wOverL'] = engineered_df['w'] / engineered_df['l']
             print("  - Added 'wOverL' feature.")
 
         # Log transform for Id
-        if self.config['normalization']['log_transform_id']:
+        if settings.get('log_transform_id'):
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", RuntimeWarning)  # Ignore log of zero/negative warnings
                 engineered_df['log_Id'] = np.log10(engineered_df['id'])
@@ -92,7 +92,7 @@ class DataPreprocessor:
         engineered_df['vsb'] = -engineered_df['vb']  # Source-to-bulk voltage
 
         # Parameters for Vth calculation from config
-        vth_params = self.config['region_classification']['vth_params']
+        vth_params = settings.get('vth_params')
         engineered_df['vth'] = engineered_df['vsb'].apply(
             lambda x: calculate_vth(x,
                                     vth0=vth_params['vth0'],
@@ -157,9 +157,9 @@ class DataPreprocessor:
         # Now perform the split and scaling
         print("\nPerforming initial stratified split (CV Pool - Final Test Set)")
         # Get parameters from self.data_config (which was passed in __init__)
-        cv_test_split_ratio = self.config['data_split']['cv_final_test_split_ratio']
-        n_splits_cv = self.config['data_split']['num_folds']
-        random_state = self.config['data_split']['random_state']
+        cv_test_split_ratio = settings.get('cv_final_test_split_ratio')
+        n_splits_cv = settings.get('num_folds')
+        random_state = settings.get('random_state')
 
         X_full = self.filtered_original_df[self.features_for_model]
         y_full = self.filtered_original_df[self.target_feature].values.reshape(-1, 1)
@@ -201,7 +201,7 @@ class DataPreprocessor:
 
     # --- Persistence Methods ---
     # Update _check_processed_data_exists and save/load to expect Path objects
-    def _check_processed_data_exists(self, path: Path): # Type hint for clarity
+    def _check_processed_data_exists(self, path: path):
         """Checks if all expected processed data files exist."""
         expected_files = [
             'x_cv_scaled.pkl', 'y_cv_scaled.pkl', 'x_cv_original_df.pkl', 'cv_fold_indices.pkl',
@@ -210,7 +210,7 @@ class DataPreprocessor:
         ]
         return all((path / f).exists() for f in expected_files) # Use Path operations
 
-    def save_processed_data(self, save_path: Path): # Type hint for clarity
+    def save_processed_data(self, save_path: path): # Type hint for clarity
         """Saves processed data and scalers to disk."""
         os.makedirs(save_path, exist_ok=True) # os.makedirs works with Path objects
         # Use Path / operator for joining
@@ -228,7 +228,7 @@ class DataPreprocessor:
         joblib.dump(self.filtered_original_df, save_path / 'filtered_original_df.pkl')
         print(f"Processed data and scalers saved to {save_path}")
 
-    def load_processed_data(self, load_path: Path): # Type hint for clarity
+    def load_processed_data(self, load_path: path): # Type hint for clarity
         """Loads processed data and scalers from disk."""
         try:
             # Use Path / operator for joining
