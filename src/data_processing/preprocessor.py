@@ -228,7 +228,7 @@ class DataPreprocessor:
         joblib.dump(self.filtered_original_df, save_path / 'filtered_original_df.pkl')
         print(f"Processed data and scalers saved to {save_path}")
 
-    def load_processed_data(self, load_path: path): # Type hint for clarity
+    def load_processed_data(self, load_path: path):
         """Loads processed data and scalers from disk."""
         try:
             # Use Path / operator for joining
