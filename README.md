@@ -63,40 +63,17 @@ Follow these steps to set up and run the project locally.
 ### **Installation**
 Clone the repository:
 ```
-bash
 git clone <repository_url>
 cd fetModeling
+
+```
 Create a virtual environment (recommended):
-
-bash
-Copy
-Edit
+```
 python -m venv .venv
-Activate the virtual environment:
-
-Windows
-
-bash
-Copy
-Edit
-.venv\Scripts\activate
-macOS/Linux
-
-bash
-Copy
-Edit
-source .venv/bin/activate
-Install project dependencies:
-
-bash
-Copy
-Edit
-pip install -r requirements.txt
+```
 
 Project Structure
-plaintext
-Copy
-Edit
+```
 fetModeling/
 ├── configs/
 │   ├── data_config.yaml         # Data processing and splitting configuration
@@ -171,7 +148,7 @@ Scales using StandardScaler.
 
 Saves processed data & scalers.
 
-EDA
+## EDA
 Analyzes dataset statistics, missing values, and distributions.
 
 Temperature distribution, device size heatmaps.
@@ -180,25 +157,25 @@ Operating region distribution.
 
 Feature correlation heatmaps.
 
-Neural Network Model
+## Neural Network Model
 SimpleNN: Feedforward PyTorch model with GELU activation.
 
-Training
+## Training
 NNTrainer: Handles training loop, validation, saving best model, plotting losses.
 
-Evaluation
+## Evaluation
 NNEvaluator: Computes:
 
 R², MAE, RMSE (scaled & original)
 
 MAPE (original scale, with small value handling)
 
-Cross-Validation
+## Cross-Validation
 CrossValidator: Runs K-fold CV, trains/evaluates per fold.
 
 Saves fold metrics, summary, and trained models.
 
-Plotting
+## Plotting
 Plotter:
 
 Generates synthetic inputs, predicts with model.
@@ -207,26 +184,29 @@ Creates I_D-V_DS and I_D-V_GS plots (linear/log scale).
 
 Compares predictions vs measured data.
 
-How to Run the Project (Workflow)
-Activate environment
+##How to Run the Project (Workflow)
+
+Activate the virtual environment:
+Windows
 ```
-bash
-Copy
-Edit
-# Windows
 .venv\Scripts\activate
-# macOS/Linux
+```
+macOS/Linux
+```
 source .venv/bin/activate
-Run Data Preprocessing
-
-bash
-Copy
-Edit
-python clean_rerun.py
-
 ```
 
-*Key Python Packages*
+Install project dependencies:
+```
+pip install -r requirements.txt
+```
+Run the script
+```
+python clean_rerun.py
+```
+
+**Key Python Packages**
+
 pandas
 numpy
 scikit-learn
