@@ -7,7 +7,7 @@ import torch
 import pandas as pd
 from scipy.interpolate import interp1d
 from pathlib import Path
-from src.config import settings # Import settings for global plot parameters
+from src.config import settings
 
 class Plotter:
     def __init__(self, scaler_X, scaler_y, features_for_model, device):

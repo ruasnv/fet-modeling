@@ -5,7 +5,6 @@ import numpy as np
 from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error, mean_absolute_percentage_error
 import warnings
 
-
 class NNEvaluator:
     def __init__(self, model, device, scaler_X, scaler_y):
         """
@@ -61,10 +60,18 @@ class NNEvaluator:
         mae_log = mean_absolute_error(y_test_np_scaled_log, y_pred_np_scaled_log)
         rmse_log = np.sqrt(mean_squared_error(y_test_np_scaled_log, y_pred_np_scaled_log))
 
+        # Calculate MAPE on the log_Id scale
+        # No clipping needed here as log_Id values should already be finite and non-zero
+        # due to the clipping applied during preprocessing.
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", RuntimeWarning)  # Ignore warnings like divide by zero
+            mape_log = mean_absolute_percentage_error(y_test_np_scaled_log, y_pred_np_scaled_log) * 100
+
         metrics = {
             'r2_log': r2_log,
             'mae_log': mae_log,
             'rmse_log': rmse_log,
+            'mape_log': mape_log,  # Add MAPE on log scale
         }
 
         # --- Metrics on the original Id scale ---
@@ -110,6 +117,8 @@ class NNEvaluator:
         print(f"  R-squared (R2) [log_Id scale]: {metrics['r2_log']:.4f}")
         print(f"  Mean Absolute Error (MAE) [log_Id scale]: {metrics['mae_log']:.4f}")
         print(f"  Root Mean Squared Error (RMSE) [log_Id scale]: {metrics['rmse_log']:.4f}")
+        print(
+            f"  Mean Absolute Percentage Error (MAPE) [log_Id scale]: {metrics['mape_log']:.2f}%")  # Print MAPE on log scale
 
         if 'mae_orig' in metrics and not np.isnan(metrics['mae_orig']):
             print(f"  Mean Absolute Error (MAE) [Original Id scale]: {metrics['mae_orig']:.4e}")

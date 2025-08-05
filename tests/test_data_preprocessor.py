@@ -2,7 +2,7 @@ from src.data_processing.preprocessor import DataPreprocessor
 
 # Assuming your config files are in the 'config' directory relative to where you run this.
 # Or provide full paths.
-dp = DataPreprocessor('config/main_config.yaml', 'config/data_config.yaml')
+dp = DataPreprocessor('config/main_config.yaml')
 data_ready = dp.load_or_process_data()
 
 if data_ready:

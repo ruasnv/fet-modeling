@@ -36,7 +36,7 @@ class AppConfig:
         try:
             this_file_dir = Path(__file__).parent
             self._project_root = self._find_project_root(this_file_dir)
-            print(f"DEBUG: Project root found at: {self._project_root}")
+            #print(f"DEBUG: Project root found at: {self._project_root}")
 
             config_dir = self._project_root / "config"
             if not config_dir.is_dir():
@@ -51,7 +51,7 @@ class AppConfig:
             # simple_nn_config.yaml can override keys from data_config.yaml.
             # `sorted` ensures consistent loading order if files have similar names.
             for config_file_path in config_files:
-                print(f"DEBUG: Loading config file: {config_file_path}")
+                #print(f"DEBUG: Loading config file: {config_file_path}")
                 with open(config_file_path, "rt") as f:
                     loaded_data = yaml.safe_load(f)
                     if loaded_data:
@@ -91,7 +91,7 @@ class AppConfig:
                     original_value = current_dict[target_key]
                     if isinstance(original_value, str):
                         current_dict[target_key] = self._project_root / original_value
-                        print(f"DEBUG: Processed path '{full_key_path}': {current_dict[target_key]}")
+                        #print(f"DEBUG: Processed path '{full_key_path}': {current_dict[target_key]}")
                     else:
                         print(
                             f"WARNING: Expected string for path '{full_key_path}', but got '{type(original_value)}'. Skipping path processing.")
@@ -108,7 +108,7 @@ class AppConfig:
                     # Check if it's a Path object (meaning it was successfully processed)
                     if full_path and isinstance(full_path, Path):
                         os.makedirs(full_path, exist_ok=True)
-                        print(f"DEBUG: Ensured directory exists: {full_path}")
+                        #print(f"DEBUG: Ensured directory exists: {full_path}")
                     elif full_path:
                         print(
                             f"WARNING: Path '{full_path}' for key '{dir_key}' is not a pathlib.Path object. Skipping directory creation.")

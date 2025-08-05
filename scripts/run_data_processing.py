@@ -12,16 +12,12 @@ def run_preprocess_data(force_reprocess=False):
     It initializes DataPreprocessor with relevant config data from global settings
     and calls its load_or_process_data method.
     """
-    print("*** Starting Data Processing Script ***")
-
-    # Pass the relevant *parts* of the global config data to DataPreprocessor
-    # DataPreprocessor will then use these dictionaries internally.
+    print("Starting Data Processing Script")
     dp: DataPreprocessor = DataPreprocessor()
-    # Call the load_or_process_data method which handles checking existing data,
-    # processing, and saving.
+    # Call the load_or_process_data method which handles checking existing data, processing, and saving.
     if dp.load_or_process_data(force_reprocess=force_reprocess):
         print("\nData processing pipeline completed successfully.")
-        return dp # Return the preprocessor instance for potential further use in the same run if needed
+        return dp # Return the preprocessor instance
     else:
         print("\nData processing pipeline failed.")
         return None

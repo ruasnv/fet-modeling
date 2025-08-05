@@ -34,10 +34,9 @@ class EDAAnalyzer:
         if settings.get("global_settings.ignore_warnings", True):
             warnings.filterwarnings('ignore')
 
-        self.eda_temp_filter = settings.get("data_filter.temperature_filter")
+        self.eda_temp_filter = settings.get("filtering.temperature_filter")
 
-        # --- FIX: Calculate derived quantities for EDA's internal use ---
-        # Ensure these columns exist for plots and analyses within EDAAnalyzer
+        # Derived quantities for EDA's internal use
         if 'vs' in self.df.columns and 'vg' in self.df.columns:
             self.df['vgs'] = self.df['vg'] - self.df['vs']
         if 'vs' in self.df.columns and 'vd' in self.df.columns:
@@ -58,7 +57,6 @@ class EDAAnalyzer:
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", RuntimeWarning)
                 self.df['log_Id'] = np.log10(self.df['id_clipped'])
-        # --- END FIX ---
 
     def run_all_eda(self):
         """
@@ -135,7 +133,6 @@ class EDAAnalyzer:
             l_um = row['l'] * 1e6
             print(f"  [{i + 1:2d}] W={w_um:.2f} µm, L={l_um:.2f} µm")
 
-        # FIX: Use .rename() after .reset_index() for compatibility
         temp_counts_by_size = self.df.groupby(['w', 'l'])['temp'].nunique().reset_index()
         temp_counts_by_size.rename(columns={'temp': 'temp_count'}, inplace=True)
 
@@ -177,7 +174,7 @@ class EDAAnalyzer:
         filtered_df_for_regions = self.df[
             (self.df['id'] > 0) &
             (self.df['vds'] > 0) &  # Use vds here, as it's calculated in __init__
-            (np.isclose(self.df['temp'], self.eda_temp_filter))  # Robust temp comparison
+            (np.isclose(self.df['temp'], self.eda_temp_filter))
             ].copy()
 
         if filtered_df_for_regions.empty:
@@ -242,7 +239,7 @@ class EDAAnalyzer:
                 warnings.simplefilter("ignore", RuntimeWarning)
                 filtered_df_for_corr['log_Id'] = np.log10(filtered_df_for_corr['id_clipped'])
 
-        correlation_cols = ['vg', 'vd', 'vb', 'vs', 'w', 'l', 'wOverL', 'log_Id', 'temp']
+        correlation_cols = ['vg', 'vd', 'vb', 'w', 'l', 'wOverL', 'log_Id']
         # Filter to only include columns that exist in the dataframe
         correlation_cols_exist = [col for col in correlation_cols if col in filtered_df_for_corr.columns]
 

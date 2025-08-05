@@ -60,7 +60,7 @@ def run_eda():
             print(f"--- EDA Report ({datetime.now().strftime('%Y-%m-%d %H:%M:%S')}) ---")
             print(f"Raw data loaded from: {raw_data_path}")
             print(f"EDA outputs saved to: {eda_output_dir}")
-            print(f"Temperature filter for region classification: {settings.get('data_filter.temperature_filter')}°C")
+            print(f"Temperature filter for region classification: {settings.get('filtering.temperature_filter')}°C")
 
             # Initialize and run the EDAAnalyzer with the raw DataFrame
             analyzer = EDAAnalyzer(df)

@@ -29,9 +29,9 @@ def run_evaluation():
     setup_environment()
 
     # --- Extract relevant configurations ---
-    processed_data_dir = settings.get('processed_data_dir')
-    trained_model_dir = settings.get('trained_model_dir')
-    report_output_dir = settings.get('report_output_dir')
+    processed_data_dir = settings.get('paths.processed_data_dir')
+    trained_model_dir = settings.get('paths.trained_model_dir')
+    report_output_dir = settings.get('paths.report_output_dir')
     plots_output_dir = Path.joinpath(report_output_dir, 'final_model_evaluation')
 
     # Ensure plots directory exists
