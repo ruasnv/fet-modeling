@@ -1,4 +1,6 @@
 # scripts/run_evaluation_on_model.py - Evaluates the final trained model and generates plots
+from pathlib import Path
+
 import torch
 import os
 import sys
@@ -30,7 +32,7 @@ def run_evaluation():
     processed_data_dir = settings.get('processed_data_dir')
     trained_model_dir = settings.get('trained_model_dir')
     report_output_dir = settings.get('report_output_dir')
-    plots_output_dir = os.path.join(report_output_dir, 'final_model_evaluation')
+    plots_output_dir = Path.joinpath(report_output_dir, 'final_model_evaluation')
 
     # Ensure plots directory exists
     os.makedirs(plots_output_dir, exist_ok=True)
@@ -51,7 +53,7 @@ def run_evaluation():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Using device: {device}")
 
-    model_path = os.path.join(trained_model_dir, 'final_simple_nn.pth')
+    model_path = Path.joinpath(trained_model_dir, 'final_simple_nn.pth')
     if not os.path.exists(model_path):
         print(f"Error: Trained model not found at {model_path}.")
         print("Please run the `train_model.py` script first to train and save the model.")

@@ -1,9 +1,13 @@
 # src/training/simple_nn_trainer.py
-import torch
-from torch.utils.data import DataLoader, TensorDataset
-import os
-import matplotlib.pyplot as plt
 
+import torch
+from pathlib import Path
+import matplotlib.pyplot as plt
+import os # Import os for directory creation
+
+from torch.utils.data import TensorDataset, DataLoader # Import DataLoader from torch.utils.data
+
+from src.config import settings # Import settings for plot parameters
 
 class NNTrainer:
     def __init__(self, model, device, criterion, optimizer, model_save_path):
@@ -13,33 +17,30 @@ class NNTrainer:
         Args:
             model (torch.nn.Module): The neural network model to train.
             device (torch.device): The device (CPU or CUDA) to run training on.
-            criterion (torch.nn.Module): The loss function.
-            optimizer (torch.optim.Optimizer): The optimizer.
-            model_save_path (str): Full path to save the best model's state_dict.
+            criterion (torch.nn.Module): The instantiated loss function (e.g., nn.MSELoss()).
+            optimizer (torch.optim.Optimizer): The instantiated optimizer (e.g., torch.optim.Adam(...)).
+            model_save_path (Path): Full path to save the best model's state_dict.
         """
         self.model = model
         self.device = device
         self.criterion = criterion
         self.optimizer = optimizer
-        self.model_save_path = model_save_path
+        self.model_save_path = Path(model_save_path) # Ensure it's a Path object
         self.best_test_loss = float('inf')  # Tracks the best test loss for model saving
 
         # Ensure the directory for saving the model exists
-        model_dir = os.path.dirname(model_save_path)
-        if model_dir:  # Only create if model_save_path is not just a filename
-            os.makedirs(model_dir, exist_ok=True)
-        else:  # If model_save_path is just a filename, assume current directory
-            pass  # os.makedirs('', exist_ok=True) would error, current dir always exists
+        os.makedirs(self.model_save_path.parent, exist_ok=True)
+
 
     def train(self, x_train_tensor, y_train_tensor, x_test_tensor, y_test_tensor, num_epochs, batch_size):
         """
         Trains the neural network model and evaluates on a test set each epoch.
 
         Args:
-            x_train_tensor (np.ndarray or torch.Tensor): Training features.
-            y_train_tensor (np.ndarray or torch.Tensor): Training target.
-            x_test_tensor (np.ndarray or torch.Tensor): Test features (for evaluation during training).
-            y_test_tensor (np.ndarray or torch.Tensor): Test target (for evaluation during training).
+            x_train_tensor (torch.Tensor): Training features.
+            y_train_tensor (torch.Tensor): Training target.
+            x_test_tensor (torch.Tensor): Test features (for evaluation during training).
+            y_test_tensor (torch.Tensor): Test target (for evaluation during training).
             num_epochs (int): Number of training epochs.
             batch_size (int): Batch size for training.
 
@@ -56,7 +57,7 @@ class NNTrainer:
         y_test_tensor = y_test_tensor.to(self.device).float()
 
         train_data = TensorDataset(x_train_tensor, y_train_tensor)
-        train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
+        train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True) # Use torch.utils.data.DataLoader
 
         print(f"  Training on {len(x_train_tensor)} samples for {num_epochs} epochs with batch size {batch_size}")
 
@@ -73,7 +74,7 @@ class NNTrainer:
                 self.optimizer.step()
                 running_train_loss += loss.item() * inputs.size(0)
 
-            avg_train_loss = running_train_loss / len(train_loader.dataset)
+            avg_train_loss = running_train_loss / len(x_train_tensor)
             train_losses.append(avg_train_loss)
 
             # Evaluate on test set after each epoch
@@ -99,6 +100,22 @@ class NNTrainer:
         print(f"Training complete. Best test loss: {self.best_test_loss:.6f}")
         return train_losses, test_losses
 
+    def save_model(self):
+        """Saves the trained model to the specified path."""
+        torch.save(self.model.state_dict(), self.model_save_path)
+        print(f"Model saved to {self.model_save_path}")
+
+    def load_model(self):
+        """Loads a model from the specified path."""
+        if self.model_save_path.exists():
+            self.model.load_state_dict(torch.load(self.model_save_path, map_location=self.device))
+            self.model.eval()
+            print(f"Model loaded from {self.model_save_path}")
+            return True
+        else:
+            print(f"Model not found at {self.model_save_path}")
+            return False
+
     def plot_losses(self, train_losses, test_losses, num_epochs, model_name, fold_num=None,
                     output_dir=None):  # output_dir is now explicitly passed and required
         """
@@ -110,7 +127,7 @@ class NNTrainer:
             num_epochs (int): Total number of epochs.
             model_name (str): Name of the model for the plot title and filename.
             fold_num (int, optional): The current fold number for CV plots. Defaults to None (for final model).
-            output_dir (str): Directory where the plot will be saved. Must be provided.
+            output_dir (Path): Directory where the plot will be saved. Must be provided.
         """
         if not train_losses or not test_losses:
             print(
@@ -123,11 +140,11 @@ class NNTrainer:
 
         os.makedirs(output_dir, exist_ok=True)  # Ensure output directory exists
 
-        plt.figure(figsize=(10, 6))  # Uses global rcParams from setup_environment
+        plt.figure(figsize=settings.get('global_settings.figure_figsize'))  # Uses global rcParams from setup_environment
         plt.plot(range(1, num_epochs + 1), train_losses, label='Training Loss')
         plt.plot(range(1, num_epochs + 1), test_losses, label='Testing Loss')
-        plt.xlabel('Epoch')
-        plt.ylabel('Loss (MSE)')
+        plt.xlabel('Epoch', fontsize=settings.get('global_settings.axes_labelsize'))
+        plt.ylabel('Loss (MSE)', fontsize=settings.get('global_settings.axes_labelsize'))
 
         if fold_num is not None:
             title = f'{model_name} Fold {fold_num} Training and Testing Loss over Epochs'
@@ -136,15 +153,12 @@ class NNTrainer:
             title = f'{model_name} Training and Testing Loss over Epochs (Final Model)'
             filename = f'{model_name.replace(" ", "_").lower()}_final_losses.png'
 
-        plt.title(title)
-        plt.legend()
-        plt.grid(True)
+        plt.title(title, fontsize=settings.get('global_settings.axes_titlesize'))
+        plt.legend(fontsize=settings.get('global_settings.legend_fontsize'))
+        plt.grid(True, alpha=0.3)
+        plt.tight_layout()
 
-        plot_filepath = os.path.join(output_dir, filename)
+        plot_filepath = Path(output_dir) / filename # Ensure output_dir is treated as Path
         plt.savefig(plot_filepath)
         plt.close()  # Close the plot to free memory
         print(f"  Loss plot saved to: {plot_filepath}")
-
-        # If raw loss arrays are needed in the future for future analysis use the code below.
-        # np.save(os.path.join(output_dir, f'{model_name}_train_losses.npy'), train_losses)
-        # np.save(os.path.join(output_dir, f'{model_name}_test_losses.npy'), test_losses)

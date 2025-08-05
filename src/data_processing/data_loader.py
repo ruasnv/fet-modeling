@@ -11,11 +11,18 @@ class DataLoader:
         """
         self.raw_data_path = raw_data_path
 
+    def _clean_column_names(self, df):
+        """
+        Cleans column names by removing leading/trailing whitespace.
+        """
+        # Strip whitespace from all column names
+        df.columns = df.columns.str.strip()
+        return df
+
     def load_raw_data(self):
         """
         Loads raw data from the specified CSV path.
         Assumes 'vg', 'vd', 'id', 'vb', 'w', 'l', 'temp' columns exist.
-        Adds 'vgs' and 'vds' columns, assuming Vs=0 (source grounded).
 
         Returns:
             pandas.DataFrame: The loaded raw DataFrame, or None if an error occurs.
@@ -27,9 +34,10 @@ class DataLoader:
 
         try:
             df = pd.read_csv(self.raw_data_path)
-            # Assuming Vs = 0 (Source terminal is grounded)
-            df['vgs'] = df['vg']
-            df['vds'] = df['vd']
+
+            # --- Ensure: Clean column names immediately after loading ---
+            df = self._clean_column_names(df)
+
             print(f"Raw data loaded successfully. {len(df)} rows found.")
             return df
         except Exception as e:

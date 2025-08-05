@@ -1,7 +1,8 @@
-# scripts/eda.py - Orchestrates the EDA process
+# scripts/run_eda.py - Orchestrates the EDA process
 import os
 import sys
 from datetime import datetime
+from pathlib import Path
 import pandas as pd
 import matplotlib  # Ensure matplotlib is imported for backend setting
 
@@ -12,6 +13,7 @@ matplotlib.use('Agg')
 
 # Import the new EDA package and helper functions
 from src.eda.analyzer import EDAAnalyzer
+from src.data_processing.data_loader import DataLoader  # Import DataLoader to get raw data
 from src.utils.helpers import setup_environment
 from src.config import settings
 
@@ -19,42 +21,36 @@ from src.config import settings
 def run_eda():
     """
     Orchestrates the Exploratory Data Analysis (EDA) process.
-    It loads the configurations and raw data, sets up the environment,
-    performs initial feature creation (vgs, vds), and then delegates
+    It loads the raw data, sets up the environment, and then delegates
     all the analysis and plotting to the EDAAnalyzer class.
     All terminal output is redirected to a log file within the EDA output directory.
     """
     print("--- Starting EDA Script ---")
-    # Extract paths from configurations
-    raw_data_path = settings.get("raw_data_path")
-    eda_output_dir = settings.get("eda_output_dir")
 
     # --- Setup Environment (Matplotlib style, output directories, warnings) ---
-    setup_environment()
+    setup_environment()  # This ensures all necessary directories are created
+
+    # Extract paths from configurations using correct dotted paths
+    raw_data_path = settings.get("paths.raw_data_path")
+    eda_output_dir = settings.get("paths.eda_output_dir")
 
     # --- Data Loading ---
-    # Robust path checking as per your original script
-    if not os.path.exists(raw_data_path):
-        alternative_raw_data_path = os.path.join(os.path.dirname(__file__), '..', raw_data_path)
-        if os.path.exists(alternative_raw_data_path):
-            raw_data_path = alternative_raw_data_path
-        else:
-            print(f"Error: Raw data file not found at expected path: {raw_data_path}")
-            print(f"Also tried: {alternative_raw_data_path}")
-            print("Please ensure 'nmoshv.csv' is in your 'data/' directory.")
-            return
+    # Use the DataLoader to load the raw data
+    data_loader = DataLoader(raw_data_path)
+    df = data_loader.load_raw_data()  # DataLoader is responsible for cleaning column names
 
-    print(f"Loading raw data from: {raw_data_path}")
-    df = pd.read_csv(raw_data_path)
+    if df is None:
+        print("Error: Failed to load raw data. Cannot proceed with EDA.")
+        return
 
-    # Create Vgs and Vds columns (essential for operating region classification in EDA)
-    df['vgs'] = df['vg'] - df['vs']
-    df['vds'] = df['vd'] - df['vs']
-    print("  Created 'vgs' (Vg-Vs) and 'vds' (Vd-Vs) columns.")
+    print(f"Raw data loaded successfully for EDA. {len(df)} rows found.")
+
+    # --- REMOVED: Feature engineering for vgs, vds, vbs from here.
+    # It will now be handled inside EDAAnalyzer's __init__ for EDA's specific needs.
 
     # --- Capture terminal output to a log file ---
     log_file_name = f"eda_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
-    log_file_path = os.path.join(eda_output_dir, log_file_name)
+    log_file_path = Path(eda_output_dir) / log_file_name  # Use Path objects for joining
 
     original_stdout = sys.stdout
     try:
@@ -64,15 +60,17 @@ def run_eda():
             print(f"--- EDA Report ({datetime.now().strftime('%Y-%m-%d %H:%M:%S')}) ---")
             print(f"Raw data loaded from: {raw_data_path}")
             print(f"EDA outputs saved to: {eda_output_dir}")
-            print(
-                f"Temperature filter for region classification: {settings.get('temperature_filter')}°C")
+            print(f"Temperature filter for region classification: {settings.get('data_filter.temperature_filter')}°C")
 
-            # Initialize and run the EDAAnalyzer
+            # Initialize and run the EDAAnalyzer with the raw DataFrame
             analyzer = EDAAnalyzer(df)
             analyzer.run_all_eda()
 
     except Exception as e:
+        # Print to original stderr if an error occurs during redirection
         print(f"An error occurred during EDA: {e}", file=sys.stderr)
+        import traceback
+        traceback.print_exc(file=sys.stderr)  # Print full traceback for debugging
     finally:
         sys.stdout = original_stdout  # Restore original stdout
 

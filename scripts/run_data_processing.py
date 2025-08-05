@@ -2,8 +2,7 @@
 import os
 import sys
 
-# Ensure the project root is in the path for module imports
-# This is crucial for `from src.config import settings` to work when running from scripts/
+# Append the parent directory to the system path to allow module imports
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from src.data_processing.preprocessor import DataPreprocessor
 
@@ -13,7 +12,7 @@ def run_preprocess_data(force_reprocess=False):
     It initializes DataPreprocessor with relevant config data from global settings
     and calls its load_or_process_data method.
     """
-    print("--- Starting Data Processing Script ---")
+    print("*** Starting Data Processing Script ***")
 
     # Pass the relevant *parts* of the global config data to DataPreprocessor
     # DataPreprocessor will then use these dictionaries internally.

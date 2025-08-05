@@ -14,15 +14,15 @@ def setup_environment():
     Args:
     """
     # Load global settings from main_config.yaml
-    report_output_dir = settings.get('report_output_dir')
+    report_output_dir = settings.get('paths.report_output_dir')
 
     # Apply Matplotlib style and parameters
-    plt.style.use(settings.get('matplotlib_style'))
-    plt.rcParams['figure.figsize'] = settings.get('figure_figsize')
-    plt.rcParams['font.size'] = settings.get('font_size')
-    plt.rcParams['axes.labelsize'] =settings.get('axes_labelsize')
-    plt.rcParams['axes.titlesize'] = settings.get('axes_titlesize')
-    plt.rcParams['legend.fontsize'] = settings.get('legend_fontsize')
+    plt.style.use(settings.get('global_settings.matplotlib_style'))
+    plt.rcParams['figure.figsize'] = settings.get('global_settings.figure_figsize')
+    plt.rcParams['font.size'] = settings.get('global_settings.font_size')
+    plt.rcParams['axes.labelsize'] =settings.get('global_settings.axes_labelsize')
+    plt.rcParams['axes.titlesize'] = settings.get('global_settings.axes_titlesize')
+    plt.rcParams['legend.fontsize'] = settings.get('global_settings.legend_fontsize')
 
     # Ensure the base report output directory exists
     os.makedirs(report_output_dir, exist_ok=True)
@@ -158,8 +158,9 @@ def classify_region(row, vth_approx_val):
     Returns:
         str: 'Cut-off', 'Linear', or 'Saturation'.
     """
-    vgs = row['vgs']
-    vds = row['vds']
+    #Assumption can be made since Source voltage is 0
+    vgs = row['vg']
+    vds = row['vd']
 
     # Cut-off Region: Vgs <= Vth
     if vgs <= vth_approx_val:

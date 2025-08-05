@@ -1,5 +1,5 @@
 # src/simple_nn.py
-from torch import nn
+import torch.nn as nn
 
 class SimpleNN(nn.Module):
     def __init__(self, input_dim):
@@ -10,8 +10,6 @@ class SimpleNN(nn.Module):
         self.output_layer = nn.Linear(128, 1)
         self.gelu = nn.GELU()  # GELU activation, non-linear, smooth
         #Avoid ReLU, dying ReLU issue on values close to zero
-
-        #TODO:
 
         #TODO: If overfitting occurs add dropout between layers
         # self.dropout = nn.Dropout(0.1)

@@ -2,10 +2,9 @@
 
 # SimpleNN model architecture parameters
 model_params:
-  input_dim: 5 # Number of input features (Vgs, Vds, Vbs, W, L). Update if adding W/L or other features.
-  hidden_dims: [128, 256, 128] # Example: Layers for the SimpleNN (your current setup)
-  activation_function: "GELU" # Activation function to use between layers
-
+  input_dim: 6 # Number of input features (Vgs, Vds, Vbs, W, L). Update if adding W/L or other features.
+  final_model_filename: 'final_simple_nn.pth'
+  #Possible to add activation function and hidden layers here as well.
 # Training specific parameters for SimpleNN
 training_params:
   num_epochs: 100
