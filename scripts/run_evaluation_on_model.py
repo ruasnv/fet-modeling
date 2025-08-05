@@ -1,6 +1,7 @@
 # scripts/run_evaluation_on_model.py - Evaluates the final trained model and generates plots
 from pathlib import Path
 
+import pandas as pd
 import torch
 import os
 import sys
@@ -73,6 +74,7 @@ def run_evaluation():
     results = evaluator.evaluate_model(
         torch.tensor(X_test_scaled, dtype=torch.float32),
         torch.tensor(y_test_scaled, dtype=torch.float32),
+        X_test_original_df=X_test_original_df  # Pass original df for original scale metrics
     )
 
     print("Final Test Set Evaluation Results:")
@@ -82,15 +84,20 @@ def run_evaluation():
         else:
             print(f"  {metric}: {value}")
 
+    final_metrics_df = pd.DataFrame([results])  # Convert dict to DataFrame
+    final_metrics_path = Path(report_output_dir) / 'final_model_metrics.csv'
+    final_metrics_df.to_csv(final_metrics_path, index=False)
+    print(f"Final model metrics saved to: {final_metrics_path}")
+
     # --- Generate Characteristic Plots ---
     print("\n--- Generating Characteristic Plots ---")
 
     # The `determine_characteristic_plot_cases` function helps identify valid plotting cases
     # from the original data based on device size and temperature
-    plot_cases = determine_characteristic_plot_cases(dp.get_filtered_original_data())
+    dynamic_plot_cases = determine_characteristic_plot_cases(dp.get_filtered_original_data())
 
-    if not plot_cases:
-        print("Skipping plot generation: No valid cases could be determined from the data.")
+    if not dynamic_plot_cases:  # Check if any cases were found
+        print("Skipping plot generation: No valid dynamic plot cases could be determined from the data.")
         return
 
     plotter = Plotter(
@@ -103,8 +110,8 @@ def run_evaluation():
     plotter.id_vds_characteristics(
         model=model,
         full_original_data_for_plot=dp.get_filtered_original_data(),
-        cases_config_for_best_worst_plots=plot_cases,
-        model_name="SimpleNN (Final Model)",
+        cases_config_for_best_worst_plots= dynamic_plot_cases,
+        model_name= "Final SimpleNN Model",
         output_dir=plots_output_dir
     )
 

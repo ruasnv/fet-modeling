@@ -83,6 +83,11 @@ def main():
             skip_if_exists=settings.get("run_flags.skip_training_if_exists"),
         )
         print("Cross-Validation complete.")
+        # Save detailed CV metrics to CSV
+        cv_metrics_path = Path(settings.get("paths.report_output_dir")) / 'cv_detailed_metrics.csv'
+        detailed_df.to_csv(cv_metrics_path, index=False)
+        print(f"Detailed CV metrics saved to: {cv_metrics_path}")
+
     else:
         print("Skipping Cross-Validation as per config.")
 
@@ -141,13 +146,12 @@ def main():
             print(f"  {metric}: {value}")
 
     # --- 6. Generate Plots ---
-    plotter_instance = Plotter(dp.get_scalers()[0], dp.get_scalers()[1],
-                               dp.get_features_for_model(), device)
-
     plots_output_dir = Path(
-        settings.get("paths.report_output_dir")) / 'final_simple_nn_model' / 'specific_characteristic_plots'
+        settings.get("paths.report_output_dir")) / 'final_model' / 'characteristic_plots'
     os.makedirs(plots_output_dir, exist_ok=True)
 
+    #TODO: Mitigate this logic to run_evaluation_on_model.py
+    """
     if settings.get("run_flags.skip_plots_if_exists") and plots_output_dir.exists() and any(plots_output_dir.iterdir()):
         print(f"Skipping plot generation: plots already exist in {plots_output_dir}")
     else:
@@ -159,13 +163,14 @@ def main():
             model_name="SimpleNN (Final Plotting Model)",
             output_dir=plots_output_dir  # Pass Path object directly
         )
-        if train_losses:
-            trainer.plot_losses(train_losses, test_losses, settings.get("training_params.num_epochs"),
-                                model_name="SimpleNN (Final Plotting Model)",
-                                output_dir=plots_output_dir)  # Pass Path object directly
-        print("Plot generation complete.")
+    """
+    if train_losses:
+        trainer.plot_losses(train_losses, test_losses, settings.get("training_params.num_epochs"),
+                            model_name="SimpleNN (Final Plotting Model)",
+                            output_dir=plots_output_dir)
+    print("Training loss plot complete.")
 
-    print("--- Model Training Script Finished ---")
+    print("--- Model Training Finished ---")
 
 
 if __name__ == "__main__":
