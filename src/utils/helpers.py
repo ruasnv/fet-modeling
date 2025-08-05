@@ -44,16 +44,18 @@ def suggest_best_worst_cases(df, region_name):
 
     Returns:
         tuple: (best_case_dict, worst_case_dict)
-               Each dict contains 'W', 'L', 'Vg_const', 'Vds_range', 'label'.
+               Each dict contains 'W', 'L', 'Vg_const', 'Vbs_val', 'Vds_range', 'label', 'plot_type'.
+               Returns (None, None) if no data is found.
     """
-    df_region = df[df['operating_region'] == region_name].copy()  # Work on a copy to avoid SettingWithCopyWarning
+    df_region = df[df['operating_region'] == region_name].copy()
 
     if df_region.empty:
         print(f"No data found for region: {region_name}. Cannot suggest best/worst cases.")
         return None, None
 
-    # Group by W, L, Vg triplets and calculate mean Id
-    group_cols = ['w', 'l', 'vg']
+    # Group by W, L, Vg, Vb triplets and calculate mean Id
+    # Including 'vb' in grouping to ensure specific Vbs values are considered.
+    group_cols = ['w', 'l', 'vg', 'vb']
     grouped = df_region.groupby(group_cols)['id'].mean().reset_index()
 
     if grouped.empty:
@@ -61,36 +63,40 @@ def suggest_best_worst_cases(df, region_name):
         return None, None
 
     # Find the max/min average Id combinations (in Amperes)
-    best_case = grouped.loc[grouped['id'].idxmax()]
-    worst_case = grouped.loc[grouped['id'].idxmin()]
+    best_case_series = grouped.loc[grouped['id'].idxmax()]
+    worst_case_series = grouped.loc[grouped['id'].idxmin()]
 
-    # Determine the actual Vds range observed for this specific W,L,Vg combination
-    # This ensures the plot range matches the available data better.
-    # If the combination doesn't exist, fall back to a default wide range.
-    min_vds = df_region['vd'].min()  # Consider overall min/max Vd in the region for the synthetic range
-    max_vds = df_region['vd'].max()
-
-    def format_case(case_series):
-        # Extract the specific row's Vds range
+    def format_case_for_plotter(case_series, label_prefix):
+        # Extract the specific row's Vds range for this combination
         specific_case_subset = df_region[
             (np.isclose(df_region['w'], case_series['w'], atol=1e-9)) &
             (np.isclose(df_region['l'], case_series['l'], atol=1e-9)) &
-            (np.isclose(df_region['vg'], case_series['vg'], atol=1e-2))
-            ]
+            (np.isclose(df_region['vg'], case_series['vg'], atol=1e-2)) &
+            (np.isclose(df_region['vb'], case_series['vb'], atol=1e-2))
+        ]
 
-        # Use actual Vds range from the data for the selected W, L, Vg combination
-        case_min_vds = specific_case_subset['vd'].min() if not specific_case_subset.empty else min_vds
-        case_max_vds = specific_case_subset['vd'].max() if not specific_case_subset.empty else max_vds
+        # Use actual Vds range from the data for the selected combination
+        # Fallback to a default range if subset is empty or Vds range is invalid
+        case_min_vds = specific_case_subset['vd'].min() if not specific_case_subset.empty and not specific_case_subset['vd'].empty else 0.0
+        case_max_vds = specific_case_subset['vd'].max() if not specific_case_subset.empty and not specific_case_subset['vd'].empty else 3.3
+
+        # Ensure min_vds is less than or equal to max_vds
+        if case_min_vds > case_max_vds:
+            case_min_vds, case_max_vds = 0.0, 3.3 # Fallback to default if range is inverted
 
         return {
-            'W': case_series['w'],
-            'L': case_series['l'],
-            'Vg_const': case_series['vg'],
-            'Vds_range': [case_min_vds, case_max_vds],  # Dynamically set Vds range
-            'label': f"W={case_series['w'] * 1e6:.1f}µm, L={case_series['l'] * 1e6:.1f}µm, Vg={case_series['vg']:.2f}V"
+            'device_size': [case_series['w'] * 1e6, case_series['l'] * 1e6], # Convert to um
+            'vbs_val': case_series['vb'],
+            'plot_type': "Id_Vds_fixed_Vgs", # Always Id-Vds for these cases
+            'fixed_vgs_vals': [case_series['vg']], # The Vg for this specific case
+            'Vds_range': [case_min_vds, case_max_vds],
+            'label': f"{label_prefix} - W={case_series['w'] * 1e6:.1f}µm, L={case_series['l'] * 1e6:.1f}µm, Vbs={case_series['vb']:.1f}V, Vgs={case_series['vg']:.2f}V"
         }
 
-    return format_case(best_case), format_case(worst_case)
+    best_case_dict = format_case_for_plotter(best_case_series, "Best Case")
+    worst_case_dict = format_case_for_plotter(worst_case_series, "Worst Case")
+
+    return best_case_dict, worst_case_dict
 
 
 def determine_characteristic_plot_cases(full_filtered_original_df):
@@ -100,24 +106,25 @@ def determine_characteristic_plot_cases(full_filtered_original_df):
 
     Args:
         full_filtered_original_df (pd.DataFrame): The preprocessed DataFrame
-            containing 'operating_region', 'w', 'l', 'vg', 'id', 'vd'.
+            containing 'operating_region', 'w', 'l', 'vg', 'id', 'vd', 'vb'.
 
     Returns:
         dict: A dictionary structured for plotting, where keys are operating regions
               and values are lists of 'best' and 'worst' case dictionaries.
+              Each inner dict is formatted for direct use by Plotter.
     """
-    # Define the regions we expect to analyze
     regions = ["Cut-off", "Linear", "Saturation"]
-    plot_cases = {}
+    plot_cases_by_region = {}
 
     for region in regions:
         best_case, worst_case = suggest_best_worst_cases(full_filtered_original_df, region)
-        if best_case and worst_case:  # Ensure cases were successfully found
-            plot_cases[region] = [best_case, worst_case]
+        if best_case and worst_case:
+            plot_cases_by_region[region] = [best_case, worst_case]
         else:
             print(f"Skipping characteristic plot cases for {region} due to insufficient data.")
 
-    return plot_cases
+    return plot_cases_by_region
+
 
 
 def calculate_vth(vsb, vth0=0.7, gamma=0.4, phi_f=0.4):

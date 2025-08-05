@@ -77,3 +77,11 @@ plot_cases:
     vbs_val: 0.0
     plot_type: "Id_Vds_fixed_Vgs" # Plot Id vs Vds for fixed Vgs values
     fixed_vgs_vals: [0.5, 1.0, 2.0, 3.0]
+
+gan:
+  gan_epochs:
+  d_learning_rate:
+  g_learning_rate:
+  batch_size:
+  gan_path:
+

@@ -1,0 +1,1 @@
+"""This module will house the class responsible for training a single GAN (i.e., for one specific operating region). It will manage the adversarial training loop, loss functions for both generator and discriminator, and optimizers. It might also include methods for saving/loading trained GAN components."""
