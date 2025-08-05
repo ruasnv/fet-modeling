@@ -115,12 +115,10 @@ def main():
 
     if settings.get("run_flags.skip_training_if_exists") and final_model_path.exists():
         print(f"  Skipping training for final model: already exists at {final_model_path}")
-        # The 'load_model' method is correctly defined in NNTrainer.
-        # This is likely a linter warning that can be ignored.
         trainer.load_model()
         train_losses, test_losses = [], []
     else:
-        print("\nTraining a final SimpleNN model on the entire CV pool for plotting")
+        print("\nTraining a final SimpleNN model on the entire CV pool")
         train_losses, test_losses = trainer.train(
             torch.tensor(dp.get_cv_data()[0], dtype=torch.float32),
             torch.tensor(dp.get_cv_data()[1], dtype=torch.float32),
@@ -146,24 +144,9 @@ def main():
             print(f"  {metric}: {value}")
 
     # --- 6. Generate Plots ---
-    plots_output_dir = Path(
-        settings.get("paths.report_output_dir")) / 'final_model' / 'characteristic_plots'
+    plots_output_dir = settings.get("paths.plots_output_dir")
     os.makedirs(plots_output_dir, exist_ok=True)
 
-    #TODO: Mitigate this logic to run_evaluation_on_model.py
-    """
-    if settings.get("run_flags.skip_plots_if_exists") and plots_output_dir.exists() and any(plots_output_dir.iterdir()):
-        print(f"Skipping plot generation: plots already exist in {plots_output_dir}")
-    else:
-        print("\nGenerating characteristic plots...")
-        plotter_instance.id_vds_characteristics(
-            model=model,
-            full_original_data_for_plot=dp.get_filtered_original_data(),
-            cases_config_for_best_worst_plots=settings.get("plot_cases"),
-            model_name="SimpleNN (Final Plotting Model)",
-            output_dir=plots_output_dir  # Pass Path object directly
-        )
-    """
     if train_losses:
         trainer.plot_losses(train_losses, test_losses, settings.get("training_params.num_epochs"),
                             model_name="SimpleNN (Final Plotting Model)",

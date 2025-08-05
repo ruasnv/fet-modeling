@@ -61,7 +61,7 @@ def main():
         scripts_dir / "run_eda.py",
         #scripts_dir / "run_gan_augmentation.py",
         scripts_dir / "run_training_simple_nn.py",
-        scripts_dir / "run_evaluation_on_models.py"
+        scripts_dir / "run_evaluation_on_model.py"
     ]
 
     # 1. Clean previous output directories
