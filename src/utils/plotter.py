@@ -59,7 +59,7 @@ class Plotter:
             'vb': vb_val
         }
 
-#TODO: Debug needed"Expected type 'float', got 'ndarray' instead "
+#TODO: Debug needed "Expected type 'float', got 'ndarray' instead "
         if sweep_axis_col == 'vd':
             synthetic_data_dict['vd'] = x_range_dense
             synthetic_data_dict['vg'] = fixed_val_for_synthetic
