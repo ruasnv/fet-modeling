@@ -6,7 +6,7 @@ global_settings:
   axes_titlesize: 12
   legend_fontsize: 8
   ignore_warnings: True
-  debug_mode: True #SET TO TRUE TO ENABLE VERBOSE DEBUG PRINTS
+  debug_mode: False #SET TO TRUE TO ENABLE VERBOSE DEBUG PRINTS
 
 paths:
   raw_data_path: 'data/nmoshv.csv'
@@ -51,7 +51,7 @@ data_split:
 # SimpleNN model architecture parameters
 model_params:
   input_dim: 6 # Number of input features (Vgs, Vds, Vbs, W, L). Update if adding W/L or other features.
-  final_model_filename: 'final_simple_nn.pth'
+  final_model_filename: 'final_model.pth'
 
 # Training specific parameters for SimpleNN
 training_params:
@@ -84,4 +84,5 @@ gan:
   g_learning_rate:
   batch_size:
   gan_path:
+  latent_dim:
 
