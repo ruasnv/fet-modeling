@@ -76,7 +76,7 @@ def main():
             X_cv_original_df=dp.get_cv_data()[2],
             cv_fold_indices=dp.get_cv_data()[3],
             model_save_base_dir=Path(settings.get("paths.trained_model_dir")) / 'k_fold_models',
-            report_output_dir=Path(settings.get("paths.report_output_dir")),
+            report_output_dir=Path(settings.get("paths.loss_output_dir")),
             skip_if_exists=settings.get("run_flags.skip_training_if_exists"),
         )
         print("Cross-Validation complete.")
@@ -141,13 +141,13 @@ def main():
             print(f"  {metric}: {value}")
 
     # --- Generate Plots ---
-    plots_output_dir = settings.get("paths.plots_output_dir")
-    os.makedirs(plots_output_dir, exist_ok=True)
+    loss_output_dir = settings.get("paths.loss_output_dir")
+    os.makedirs(loss_output_dir, exist_ok=True)
 
     if train_losses:
         trainer.plot_losses(train_losses, test_losses, settings.get("training_params.num_epochs"),
                             model_name="SimpleNN (Final Plotting Model)",
-                            output_dir=plots_output_dir)
+                            output_dir=loss_output_dir)
     print("Training loss plot complete.")
 
     print("    Model Training Finished    ")

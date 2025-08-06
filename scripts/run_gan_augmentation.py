@@ -124,7 +124,7 @@ def run_gan_augmentation(force_reprocess_data=False, force_retrain_gans=False):
                 columns=df_region.columns)  # Empty DF for synthetic data
 
     # --- Combine and Save Augmented Data ---
-    augmented_data_output_path = Path(settings.get('paths.processed_data_dir')) / 'augmented_data.pkl'
+    augmented_data_output_path = Path(settings.get('paths.aug_data_dir')) / 'augmented_data.pkl'
     gan_data_handler.combine_and_save_augmented_data(augmented_dfs_by_region, augmented_data_output_path)
 
     print("   GAN Data Augmentation Script Finished   ")

@@ -53,7 +53,7 @@ def run_evaluation():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Using device: {device}")
 
-    model_path = Path.joinpath(trained_model_dir, 'final_simple_nn.pth')
+    model_path = Path.joinpath(trained_model_dir, 'final_model.pth')
     if not os.path.exists(model_path):
         print(f"Error: Trained model not found at {model_path}.")
         print("Please run the `train_model.py` script first to train and save the model.")
@@ -93,7 +93,14 @@ def run_evaluation():
 
     # The `determine_characteristic_plot_cases` function helps identify valid plotting cases
     # from the original data based on device size and temperature
-    dynamic_plot_cases = determine_characteristic_plot_cases(dp.get_filtered_original_data())
+    dynamic_plot_cases = determine_characteristic_plot_cases(
+        model=model,
+        full_filtered_original_df=dp.get_filtered_original_data(),
+        scaler_X=dp.get_scalers()[0],
+        scaler_y=dp.get_scalers()[1],
+        features_for_model=features_for_model,
+        device=device
+    )
 
     if not dynamic_plot_cases:  # Check if any cases were found, RARE but keep for Debugging
         print("Skipping plot generation: No valid dynamic plot cases could be determined from the data.")
