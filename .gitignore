@@ -1,2 +1,18 @@
+# Python-specific files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environment
+.venv/
+
+# PyCharm-specific files
+.idea/
+*.iml
+.DS_Store # macOS specific
+
+*.xml
+*.json
+*.pkl
 *.pth
-.idea/workspace.xml
