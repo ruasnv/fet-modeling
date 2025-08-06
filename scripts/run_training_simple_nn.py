@@ -1,19 +1,16 @@
 # scripts/run_training_simple_nn.py
 import torch
 import torch.nn as nn
-import torch.optim as optim  # Import optim for dynamic optimizer creation
+import torch.optim as optim
 import os
 import sys
 from pathlib import Path
-import matplotlib  # Ensure matplotlib is imported for backend settings
-
+import matplotlib
 
 # Append the parent directory to the system path to allow module imports
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-# Use 'Agg' backend for non-interactive plotting
 matplotlib.use('Agg')
 
-# Import modular components from src
 from src.data_processing.preprocessor import DataPreprocessor
 from src.models.simple_nn import SimpleNN
 from src.training.simple_nn_trainer import NNTrainer
@@ -25,7 +22,7 @@ from src.cross_validation.cv_runner import CrossValidator
 
 
 def main():
-    print("--- Starting Model Training Script ---")
+    print("   Starting Model Training Script   ")
     setup_environment()
 
     # --- Data Loading and Processing check ---
@@ -42,7 +39,7 @@ def main():
     print(f"Using device: {device}")
 
     nn_input_dim = settings.get('model_params.input_dim')
-    # --- 3. Run Cross-Validation ---
+    # --- Run Cross-Validation ---
     if settings.get('run_flags.run_cross_validation'):
         criterion_cv_instance = getattr(nn, settings.get("training_params.criterion"))()
 
@@ -55,23 +52,23 @@ def main():
                 'num_epochs': settings.get('training_params.num_epochs'),
                 'batch_size': settings.get('training_params.batch_size'),
                 'learning_rate': settings.get('training_params.learning_rate'),
-                'criterion_name': settings.get('training_params.criterion'),  # Still useful for logging/info
-                'optimizer_name': settings.get('training_params.optimizer')  # Still useful for logging/info
+                'criterion_name': settings.get('training_params.criterion'),  # Only useful for logging
+                'optimizer_name': settings.get('training_params.optimizer')
             },
             'evaluator_class': NNEvaluator
         }
-        print("\nStarting Cross-Validation...")
+        print("\nStarting Cross-Validation")
 
         cv_runner = CrossValidator(
             device=device,
-            criterion=criterion_cv_instance,  # Pass the instantiated criterion object
+            criterion=criterion_cv_instance,
             scaler_x=dp.get_scalers()[0],
             scaler_y=dp.get_scalers()[1],
             features_for_model=dp.get_features_for_model()
         )
 
-        # These variables are assigned but their values are saved to files by cv_runner.run_cv.
-        # The linter might warn about them being unused, but this is expected behavior.
+        # These variables are assigned but their values are saved to files by cv_runner.run_cv
+        # The linter might warn about them being unused, but this is expected behavior. Don't remove them
         summary_df, detailed_df = cv_runner.run_cv(
             model_config=model_config_cv,
             X_cv_scaled=dp.get_cv_data()[0],
@@ -91,7 +88,7 @@ def main():
     else:
         print("Skipping Cross-Validation as per config.")
 
-    # --- 4. Train/Load Final Model for Plotting/General Evaluation ---
+    # ---Train/Load Final Model for Plotting/General Evaluation ---
     final_model_filename = settings.get('model_params.final_model_filename')
     final_model_path = Path(settings.get("paths.trained_model_dir")) / final_model_filename
 
@@ -108,8 +105,8 @@ def main():
     trainer = NNTrainer(
         model=model,
         device=device,
-        criterion=criterion_final_instance,  # Pass the object
-        optimizer=optimizer_final_instance,  # Pass the object
+        criterion=criterion_final_instance,
+        optimizer=optimizer_final_instance,
         model_save_path=final_model_path
     )
 
@@ -128,7 +125,7 @@ def main():
             batch_size=settings.get("training_params.batch_size"),
         )
 
-    # --- 5. Evaluate Final Model ---
+    # --- Evaluate Final Model ---
     evaluator = NNEvaluator(model, device, *dp.get_scalers())
     print("\nEvaluating final model on test data:")
     eval_results = evaluator.evaluate_model(
@@ -143,7 +140,7 @@ def main():
         else:
             print(f"  {metric}: {value}")
 
-    # --- 6. Generate Plots ---
+    # --- Generate Plots ---
     plots_output_dir = settings.get("paths.plots_output_dir")
     os.makedirs(plots_output_dir, exist_ok=True)
 
@@ -153,7 +150,7 @@ def main():
                             output_dir=plots_output_dir)
     print("Training loss plot complete.")
 
-    print("--- Model Training Finished ---")
+    print("    Model Training Finished    ")
 
 
 if __name__ == "__main__":

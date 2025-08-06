@@ -1,5 +1,4 @@
 # src/gan_augmentation/gan_model.py
-
 import torch
 import torch.nn as nn
 
@@ -22,8 +21,8 @@ class Generator(nn.Module):
         self.model = nn.Sequential(
             # Layer 1: From latent_dim to a larger hidden dimension
             nn.Linear(latent_dim, 128),
-            nn.BatchNorm1d(128), # BatchNorm helps stabilize GAN training
-            nn.LeakyReLU(0.2, inplace=True), # LeakyReLU for generator to avoid vanishing gradients
+            nn.BatchNorm1d(128), # BatchNorm
+            nn.LeakyReLU(0.2, inplace=True), # LeakyReLU
 
             # Layer 2: Further increasing complexity
             nn.Linear(128, 256),
@@ -36,8 +35,7 @@ class Generator(nn.Module):
             nn.LeakyReLU(0.2, inplace=True),
 
             # Output layer: Maps to the desired data_dim
-            # No activation here, as StandardScaler-normalized data can be unbounded (positive/negative)
-            # If your data was strictly bounded (e.g., [0,1]), you might use nn.Sigmoid() or nn.Tanh()
+            # No activation here as StandardScaler normalized data can be unbounded (positive/negative)
             nn.Linear(512, data_dim)
         )
 
@@ -73,7 +71,7 @@ class Discriminator(nn.Module):
             # Layer 1: From data_dim to a hidden dimension
             nn.Linear(data_dim, 512),
             nn.LeakyReLU(0.2, inplace=True),
-            nn.Dropout(0.3), # Dropout helps prevent overfitting and improves stability
+            nn.Dropout(0.3), # Dropout
 
             # Layer 2:
             nn.Linear(512, 256),
@@ -87,7 +85,7 @@ class Discriminator(nn.Module):
 
             # Output layer: Single output for binary classification (real/fake)
             nn.Linear(128, 1),
-            nn.Sigmoid() # Sigmoid to output a probability between 0 and 1
+            nn.Sigmoid() # Sigmoid
         )
 
     def forward(self, x):

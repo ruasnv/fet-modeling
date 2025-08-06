@@ -4,6 +4,8 @@ import warnings
 import joblib
 import numpy as np
 from pathlib import Path
+
+import pandas as pd
 from sklearn.model_selection import StratifiedKFold, train_test_split
 from sklearn.preprocessing import StandardScaler
 from .data_loader import DataLoader
@@ -172,7 +174,7 @@ class DataPreprocessor:
 
         # Use the correct features_for_model from the config
         X_full = self.filtered_original_df[self.features_for_model]
-        y_full = self.filtered_original_df[self.target_feature].values.reshape(-1, 1)
+        y_full = self.filtered_original_df[self.target_feature]
 
         if settings.get('global_settings.debug_mode', False):
             print(f"DEBUG: X_full head:\n{X_full.head()}")
@@ -212,6 +214,12 @@ class DataPreprocessor:
                 random_state=random_state,
                 stratify=cv_pool_stratify_labels
             )
+        # FIX: Ensure y_cv_pool and y_final_test are DataFrames after train_test_split
+        # train_test_split can sometimes return a Series if the input y was a single-column DataFrame
+        if isinstance(y_cv_pool, pd.Series):
+            y_cv_pool = y_cv_pool.to_frame(name=self.target_feature)
+        if isinstance(y_final_test, pd.Series):
+            y_final_test = y_final_test.to_frame(name=self.target_feature)
 
         self.X_cv_original_df = self.filtered_original_df.loc[idx_cv_pool].copy()
         self.X_final_test_original_df = self.filtered_original_df.loc[idx_final_test].copy()

@@ -6,7 +6,7 @@ global_settings:
   axes_titlesize: 12
   legend_fontsize: 8
   ignore_warnings: True
-  debug_mode: False #SET TO TRUE TO ENABLE VERBOSE DEBUG PRINTS
+  debug_mode: False #Set to "true" to enable DEBUG prints
 
 paths:
   raw_data_path: 'data/nmoshv.csv'
@@ -19,41 +19,35 @@ paths:
 filtering:
   id_greater_than_zero: True # Filter out data points where 'id' <= 0
   vds_greater_than_zero: True # Filter out data points where 'vd' <= 0
-  temperature_filter: 27 # Specific temperature (in Celsius) to filter for. Set to null or remove for all temps.
+  temperature_filter: 27 # temperature (C) to filter for
 
-# Feature engineering parameters
 feature_engineering:
   input_features: ['vg', 'vd', 'vb', 'w', 'l', 'wOverL'] # Base features to be used as model inputs
-  target_feature: 'log_Id' # Name of the target feature after transformation
+  target_feature: 'log_Id' # Name of the target feature
 
-# Normalization and Transformation settings
 normalization:
-  method: "StandardScaler" # Scaling method for features and target (e.g., StandardScaler)
+  method: "StandardScaler" # Scaling method for features and target
   log_transform_id: True # Apply log10 transformation to 'id' to create 'log_Id'
 
-# Parameters for operating region classification and data splitting
 region_classification:
   stratify_column: 'operating_region' # Column to use for stratified splitting
   method: "vth_based" # Method for classifying operating regions: 'vth_based'
 
-  # Parameters for calculate_vth helper function (body effect formula)
-  # These are placeholders; obtain precise values from IHP PDK or device characterization.
+# Parameters for calculate_vth helper function (body effect formula)
 vth_params:
   vth0: 0.7 # Zero-bias threshold voltage (Vth at Vsb=0)
   gamma: 0.5 # Body effect coefficient
-  phi_f: 0.4 # Fermi potential (often 2*phi_f is used in formula; verify your formula's 'phi_f' definition)
+  phi_f: 0.4 # Fermi potential
 
 data_split:
   cv_final_test_split_ratio: 0.15 # Ratio of data to reserve for the final test set
   num_folds: 10 # Number of folds for K-fold cross-validation
   random_state: 42 # Seed for reproducibility of data splits
 
-# SimpleNN model architecture parameters
 model_params:
-  input_dim: 6 # Number of input features (Vgs, Vds, Vbs, W, L). Update if adding W/L or other features.
+  input_dim: 6 # Number of input features (Vgs, Vds, Vbs, W, L)
   final_model_filename: 'final_model.pth'
 
-# Training specific parameters for SimpleNN
 training_params:
   num_epochs: 100
   batch_size: 64
@@ -61,28 +55,26 @@ training_params:
   criterion: "MSELoss" # Loss function to use
   optimizer: "Adam" # Optimizer to use
 
-# Flags to control training/plotting behavior for SimpleNN runs
 run_flags:
   run_cross_validation: True # Whether to execute the cross-validation step
   skip_training_if_exists: True # If a model file exists, load it instead of retraining
   skip_plots_if_exists: True # If plot directory exists and is not empty, skip generating plots
 
-# Configuration for specific characteristic plots (e.g., best/worst performing devices)
 plot_cases:
-  - device_size: [1.0, 0.5] # [Width, Length] in um. Represents a specific transistor.
-    vbs_val: -1.0 # Back-gate voltage
-    plot_type: "Id_Vgs_fixed_Vds" # Plot Id vs Vgs for fixed Vds values
-    fixed_vds_vals: [0.1, 0.5, 1.0, 3.0] # Specific Vds values to plot
+  - device_size: [1.0, 0.5]
+    vbs_val: -1.0
+    plot_type: "Id_Vgs_fixed_Vds"
+    fixed_vds_vals: [0.1, 0.5, 1.0, 3.0]
   - device_size: [5.0, 0.1]
     vbs_val: 0.0
-    plot_type: "Id_Vds_fixed_Vgs" # Plot Id vs Vds for fixed Vgs values
+    plot_type: "Id_Vds_fixed_Vgs"
     fixed_vgs_vals: [0.5, 1.0, 2.0, 3.0]
 
-gan:
-  gan_epochs:
-  d_learning_rate:
-  g_learning_rate:
-  batch_size:
-  gan_path:
-  latent_dim:
+gan_params:
+  latent_dim: 100 # Dimension of the noise vector for the Generator
+  num_gan_epochs: 2000 # Number of epochs to train each GAN. GANs often need many epochs, yet it is kept small bc of the lack of resources
+  gan_batch_size: 128  # Batch size for GAN training
+  generator_learning_rate: 0.0002
+  discriminator_learning_rate: 0.0002
+  additional_majority_samples: 200
 

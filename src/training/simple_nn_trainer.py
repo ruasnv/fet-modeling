@@ -1,13 +1,10 @@
 # src/training/simple_nn_trainer.py
-
 import torch
 from pathlib import Path
 import matplotlib.pyplot as plt
-import os # Import os for directory creation
-
-from torch.utils.data import TensorDataset, DataLoader # Import DataLoader from torch.utils.data
-
-from src.config import settings # Import settings for plot parameters
+import os
+from torch.utils.data import TensorDataset, DataLoader
+from src.config import settings
 
 class NNTrainer:
     def __init__(self, model, device, criterion, optimizer, model_save_path):
@@ -25,9 +22,8 @@ class NNTrainer:
         self.device = device
         self.criterion = criterion
         self.optimizer = optimizer
-        self.model_save_path = Path(model_save_path) # Ensure it's a Path object
+        self.model_save_path = Path(model_save_path)
         self.best_test_loss = float('inf')  # Tracks the best test loss for model saving
-
         # Ensure the directory for saving the model exists
         os.makedirs(self.model_save_path.parent, exist_ok=True)
 
@@ -57,7 +53,7 @@ class NNTrainer:
         y_test_tensor = y_test_tensor.to(self.device).float()
 
         train_data = TensorDataset(x_train_tensor, y_train_tensor)
-        train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True) # Use torch.utils.data.DataLoader
+        train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
 
         print(f"  Training on {len(x_train_tensor)} samples for {num_epochs} epochs with batch size {batch_size}")
 
@@ -66,7 +62,7 @@ class NNTrainer:
             running_train_loss = 0.0
 
             for inputs, targets in train_loader:
-                # inputs and targets are already on device from TensorDataset and .to(self.device) above
+                # inputs and targets are already on device from TensorDataset and .to(self.device) above!
                 self.optimizer.zero_grad()
                 outputs = self.model(inputs)
                 loss = self.criterion(outputs, targets)
@@ -79,13 +75,13 @@ class NNTrainer:
 
             # Evaluate on test set after each epoch
             self.model.eval()  # Set model to evaluation mode
-            # Good practice to empty the cache for tight GPU memories, if applicable
+            # Good practice to empty the cache for tight GPU memories
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
 
-            # Using torch.no_grad() is crucial for evaluation to save memory and avoid gradient calculations
+            # Using torch.no_grad() is good for evaluation to save memory and avoid gradient calculations
             with torch.no_grad():
-                test_outputs = self.model(x_test_tensor)  # x_test_tensor is already on device
+                test_outputs = self.model(x_test_tensor)
                 test_loss = self.criterion(test_outputs, y_test_tensor).item()
             test_losses.append(test_loss)
 
@@ -138,9 +134,9 @@ class NNTrainer:
 
         print(f"  Plotting Loss for {model_name}, (Fold {fold_num if fold_num is not None else 'Final Model'})")
 
-        os.makedirs(output_dir, exist_ok=True)  # Ensure output directory exists
+        os.makedirs(output_dir, exist_ok=True)
 
-        plt.figure(figsize=settings.get('global_settings.figure_figsize'))  # Uses global rcParams from setup_environment
+        plt.figure(figsize=settings.get('global_settings.figure_figsize'))
         plt.plot(range(1, num_epochs + 1), train_losses, label='Training Loss')
         plt.plot(range(1, num_epochs + 1), test_losses, label='Testing Loss')
         plt.xlabel('Epoch', fontsize=settings.get('global_settings.axes_labelsize'))
@@ -158,7 +154,7 @@ class NNTrainer:
         plt.grid(True, alpha=0.3)
         plt.tight_layout()
 
-        plot_filepath = Path(output_dir) / filename # Ensure output_dir is treated as Path
+        plot_filepath = Path(output_dir) / filename
         plt.savefig(plot_filepath)
-        plt.close()  # Close the plot to free memory
+        plt.close()
         print(f"  Loss plot saved to: {plot_filepath}")

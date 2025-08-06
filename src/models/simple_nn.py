@@ -9,12 +9,10 @@ class SimpleNN(nn.Module):
         self.layer3 = nn.Linear(256, 128)
         self.output_layer = nn.Linear(128, 1)
         self.gelu = nn.GELU()
-        # GELU activation, non-linear, smooth
+        # GELU activation
         # Avoid ReLU, dying ReLU issue on values close to zero
 
-        #TODO: If overfitting occurs add dropout between layers
-        # self.dropout = nn.Dropout(0.1)
-        # Dropout(0.1) between layers for regularization
+        #TODO: This model can be improved with optimizations, dropout etc. Due to resource limits this is the most optimal for my case
 
     def forward(self, x):
         #To add dropout, use:

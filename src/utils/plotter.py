@@ -59,6 +59,7 @@ class Plotter:
             'vb': vb_val
         }
 
+#TODO: Debug needed"Expected type 'float', got 'ndarray' instead "
         if sweep_axis_col == 'vd':
             synthetic_data_dict['vd'] = x_range_dense
             synthetic_data_dict['vg'] = fixed_val_for_synthetic
@@ -112,7 +113,7 @@ class Plotter:
             self,
             model,
             full_original_data_for_plot,
-            cases_config_for_best_worst_plots: dict,  # Now explicitly a dictionary
+            cases_config_for_best_worst_plots: dict,
             model_name="Model",
             output_dir: Path = None
     ):
@@ -136,17 +137,17 @@ class Plotter:
 
         print(f"\nGenerating Id characteristic plots for {model_name}")
 
-        # Define consistent colors for best/worst cases across plots
+        # Colors for best/worst case plots
         color_best_measured = 'blue'
         color_best_predicted = 'cornflowerblue'
         color_worst_measured = 'red'
         color_worst_predicted = 'lightcoral'
 
-        # FIX: Iterate over regions and their associated cases
+        #Iterate over regions and their associated cases
         for region, cases_list in cases_config_for_best_worst_plots.items():
             print(f"Plotting for {region} region...")
 
-            # Create new figures for EACH region (to group best/worst on one plot)
+            # Create new figures for each region (to group best/worst on one plot)
             fig_linear, ax_linear = plt.subplots(figsize=settings.get('global_settings.figure_figsize'))
             fig_log, ax_log = plt.subplots(figsize=settings.get('global_settings.figure_figsize'))
 
@@ -154,14 +155,14 @@ class Plotter:
             ax_linear.set_title(f'{model_name} Performance in {region} Region (Linear Scale)',
                                 fontsize=settings.get('global_settings.axes_titlesize'))
             ax_linear.set_ylabel('Id (µA)', fontsize=settings.get('global_settings.axes_labelsize'))
-            ax_linear.set_xlabel('Vds (V)', fontsize=settings.get('global_settings.axes_labelsize'))  # Assuming Id-Vds
+            ax_linear.set_xlabel('Vds (V)', fontsize=settings.get('global_settings.axes_labelsize'))
             ax_linear.grid(True)
 
             # Set common plot properties for log scale
             ax_log.set_title(f'{model_name} Performance in {region} Region (Log Scale)',
                              fontsize=settings.get('global_settings.axes_titlesize'))
             ax_log.set_ylabel('Id (µA)', fontsize=settings.get('global_settings.axes_labelsize'))
-            ax_log.set_xlabel('Vds (V)', fontsize=settings.get('global_settings.axes_labelsize'))  # Assuming Id-Vds
+            ax_log.set_xlabel('Vds (V)', fontsize=settings.get('global_settings.axes_labelsize'))
             ax_log.set_yscale('log')
             ax_log.grid(True, which='both', linestyle='--', linewidth=0.5)
 
@@ -181,7 +182,7 @@ class Plotter:
                 # Determine x_range_dense and sweep_axis_col
                 x_range_min, x_range_max = vds_range
                 x_range_dense = np.linspace(x_range_min, x_range_max, 100)
-                sweep_axis_col = 'vd'  # It's always Vds sweep for these cases
+                sweep_axis_col = 'vd'
 
                 # Determine fixed value for synthetic data generation (Vg_const for Id-Vds)
                 fixed_val_for_synthetic = vg_const
@@ -191,7 +192,7 @@ class Plotter:
                     (np.isclose(full_original_data_for_plot['w'], w_val_um * 1e-6, atol=1e-9)) &
                     (np.isclose(full_original_data_for_plot['l'], l_val_um * 1e-6, atol=1e-9)) &
                     (np.isclose(full_original_data_for_plot['vb'], vbs_val, atol=1e-2)) &
-                    (np.isclose(full_original_data_for_plot['vg'], vg_const, atol=1e-2))  # Filter by Vg_const
+                    (np.isclose(full_original_data_for_plot['vg'], vg_const, atol=1e-2))
                     ].copy()
 
                 if measured_subset.empty:
@@ -200,7 +201,7 @@ class Plotter:
 
                 print(f"  Plotting case: {case_label}")
 
-                # Assign colors based on "Best Case" or "Worst Case" label
+                # Assign colors
                 if "best case" in case_label.lower():
                     current_measured_color = color_best_measured
                     current_predicted_color = color_best_predicted
@@ -220,7 +221,7 @@ class Plotter:
                     case_label=case_label,
                     measured_color=current_measured_color,
                     predicted_color=current_predicted_color,
-                    region_name=region,  # Use the region name for context
+                    region_name=region,
                     fixed_val_for_synthetic=fixed_val_for_synthetic,
                     sweep_axis_col=sweep_axis_col
                 )
@@ -237,12 +238,12 @@ class Plotter:
                     sweep_axis_col=sweep_axis_col
                 )
 
-            # Add legends and save figures for THIS specific region's plots
+            # Add legends and save figures for specific region's plots
             ax_linear.legend(fontsize=settings.get('global_settings.legend_fontsize'))
             ax_log.legend(fontsize=settings.get('global_settings.legend_fontsize'))
             plt.tight_layout()
 
-            # Filename should reflect the region
+            # Filename
             filename_base = f"{model_name.replace(' ', '_').lower()}_{region.lower().replace('-', '_')}_characteristics"
             linear_path = output_dir / f"{filename_base}_linear.png"
             log_path = output_dir / f"{filename_base}_log.png"

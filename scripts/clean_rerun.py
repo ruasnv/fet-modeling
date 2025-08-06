@@ -16,14 +16,14 @@ def clean_directories(base_path):
         base_path / "data" / "processed"
     ]
 
-    print("\n--- Cleaning previous output directories ---")
+    print("\n    Cleaning previous output directories    ")
     for d in dirs_to_clean:
         if d.exists():
             print(f"Deleting: {d}")
             shutil.rmtree(d)
         print(f"Creating: {d}")
         d.mkdir(parents=True, exist_ok=True) # Recreate, ensuring parent dirs exist
-    print("--- Cleaning complete ---")
+    print("   Cleaning complete    ")
 
 def run_script(script_path):
     """
@@ -32,19 +32,19 @@ def run_script(script_path):
     Args:
         script_path (Path): The full path to the Python script to run.
     """
-    print(f"\n--- Running {script_path.name} ---")
+    print(f"\n   Running {script_path.name}    ")
     try:
-        # Use sys.executable to ensure the Python interpreter from the active virtual environment is used
+        # Use sys.executable to ensure the interpreter from the virtual environment is used
         result = subprocess.run([sys.executable, str(script_path)], check=True, capture_output=False)
-        print(f"--- {script_path.name} finished successfully ---")
+        print(f"    {script_path.name} finished successfully    ")
     except subprocess.CalledProcessError as e:
-        print(f"--- Error running {script_path.name}: {e} ---")
+        print(f"    Error running {script_path.name}: {e}    ")
         print(f"  Stdout: {e.stdout.decode() if e.stdout else 'None'}")
         print(f"  Stderr: {e.stderr.decode() if e.stderr else 'None'}")
         # Exit if any script fails
         exit(1)
     except FileNotFoundError:
-        print(f"--- Error: Python executable not found. Make sure Python is in your PATH or virtual environment is active. ---")
+        print(f"    Error: Python executable not found. Make sure Python is in your PATH or virtual environment is active.    ")
         exit(1)
 
 def main():
@@ -64,17 +64,17 @@ def main():
         scripts_dir / "run_evaluation_on_model.py"
     ]
 
-    # 1. Clean previous output directories
+    #Clean previous output directories
     clean_directories(project_root)
 
-    # 2. Run each script in sequence
+    #Run each script in sequence
     for script in pipeline_scripts:
         if not script.exists():
             print(f"Error: Script not found: {script}. Please ensure all pipeline scripts exist.")
             exit(1)
         run_script(script)
 
-    print("\n--- Full MOSFET Modeling Pipeline Execution Complete! ---")
+    print("\n   Full FET Modeling Pipeline Execution Complete   ")
 
 if __name__ == "__main__":
     main()

@@ -5,7 +5,6 @@ import os
 import matplotlib.pyplot as plt
 from src.config import settings
 
-
 def setup_environment():
     """
     Sets up matplotlib environment based on global settings from main_config.yaml
@@ -13,9 +12,8 @@ def setup_environment():
 
     Args:
     """
-    # Load global settings from main_config.yaml
-    report_output_dir = settings.get('paths.report_output_dir')
 
+    report_output_dir = settings.get('paths.report_output_dir')
     # Apply Matplotlib style and parameters
     plt.style.use(settings.get('global_settings.matplotlib_style'))
     plt.rcParams['figure.figsize'] = settings.get('global_settings.figure_figsize')
@@ -27,8 +25,10 @@ def setup_environment():
     # Ensure the base report output directory exists
     os.makedirs(report_output_dir, exist_ok=True)
     print(f"Report output base directory created/ensured: {report_output_dir}")
-    print(f"Matplotlib backend: {plt.get_backend()}")
 
+#TODO: This method was added to solve the plotting issue I faced.
+# Originally this is not the best solution for this problem.
+# Ideally it should find the best and worst performing devices and plot them.
 
 def suggest_best_worst_cases(df, region_name):
     """
@@ -126,7 +126,10 @@ def determine_characteristic_plot_cases(full_filtered_original_df):
     return plot_cases_by_region
 
 
-
+#TODO: This method of calculating the Vth for region separation was added later.
+# It used the Body effect formula with default parameters for the NMOS-HV devices.
+# However the region distribution changes significantly when this method is used.
+# I suggest to check this theoretically with a domain expert.
 def calculate_vth(vsb, vth0=0.7, gamma=0.4, phi_f=0.4):
     """
     Calculates the threshold voltage (Vth) using the body effect formula.
@@ -142,14 +145,10 @@ def calculate_vth(vsb, vth0=0.7, gamma=0.4, phi_f=0.4):
         pd.Series or float: Calculated threshold voltage.
     """
     # Common formula for body effect: Vth = Vth0 + gamma * (sqrt(2*phi_f + V_SB) - sqrt(2*phi_f))
-    # Here, `vsb` directly represents V_SB (Source-Bulk voltage).
-
-    # Ensure the argument to sqrt is non-negative. If `vsb` can be negative (e.g., if vb is positive),
     # `2*phi_f + vsb` could become negative. Clipping to a small positive value prevents NaNs.
     # The value 1e-9 is an arbitrary small positive number to avoid log(0) and sqrt(0) issues.
     sqrt_term_arg = 2 * phi_f + vsb
     sqrt_term_arg = np.maximum(sqrt_term_arg, 1e-9)
-
     return vth0 + gamma * (np.sqrt(sqrt_term_arg) - np.sqrt(2 * phi_f))
 
 
@@ -165,14 +164,15 @@ def classify_region(row, vth_approx_val):
     Returns:
         str: 'Cut-off', 'Linear', or 'Saturation'.
     """
-    #Assumption can be made since Source voltage is 0
+
+    # Assumption can be made since Source voltage is 0
     vgs = row['vg']
     vds = row['vd']
 
-    # Cut-off Region: Vgs <= Vth
+    # Cutoff Region: Vgs <= Vth
     if vgs <= vth_approx_val:
         return 'Cut-off'
-    # Linear (Triode) Region: Vds < (Vgs - Vth)
+    # Linear Region: Vds < (Vgs - Vth)
     elif vds < (vgs - vth_approx_val):
         return 'Linear'
     # Saturation Region: Vds >= (Vgs - Vth)

@@ -1,5 +1,5 @@
 # src/gan_augmentation/gan_trainer.py
-import warnings
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -10,6 +10,7 @@ import os
 from pathlib import Path
 from src.config import settings
 from src.utils.helpers import calculate_vth, classify_region
+import warnings
 
 
 class GANTrainer:
@@ -49,13 +50,13 @@ class GANTrainer:
         # Loss function: Binary Cross Entropy for adversarial loss
         self.adversarial_loss = nn.BCELoss()
 
-        # Optimizers (Adam is commonly used for GANs)
+        # Optimizers
         self.lr_g = settings.get('gan_params.generator_learning_rate')
         self.lr_d = settings.get('gan_params.discriminator_learning_rate')
         self.optimizer_g = optim.Adam(self.generator.parameters(), lr=self.lr_g, betas=(0.5, 0.999))
         self.optimizer_d = optim.Adam(self.discriminator.parameters(), lr=self.lr_d, betas=(0.5, 0.999))
 
-        # Move models to device
+        # Move models to preferred device (Cuda in our case)
         self.generator.to(self.device)
         self.discriminator.to(self.device)
 
@@ -86,19 +87,14 @@ class GANTrainer:
             return [], []
 
         # Prepare data for PyTorch DataLoader
-        # Need to combine features and target into a single tensor for GAN input/output
         features_for_model = settings.get('feature_engineering.input_features')
-        target_feature = settings.get('normalization.target_feature')
+        target_feature = settings.get('feature_engineering.target_feature')
 
-        # Select only the features and target the GAN will operate on
-        gan_input_cols = features_for_model + [target_feature]
-        real_data_for_gan = real_data_df[gan_input_cols].values
-
-        # Scale the real data using the pre-fitted scalers
-        # Features are scaled by scaler_X, target by scaler_y
-        # We need to apply these separately and then concatenate
-        scaled_features = self.scaler_X.transform(real_data_for_gan[:, :-1])  # All columns except last
-        scaled_target = self.scaler_y.transform(real_data_for_gan[:, -1].reshape(-1, 1))  # Last column
+        #Pass DataFrame slices to scalers to preserve feature names
+        #Had to add this to debug the np and pd bug
+        scaled_features = self.scaler_X.transform(real_data_df[features_for_model])
+        scaled_target = self.scaler_y.transform(
+            real_data_df[[target_feature]])  # Pass as DataFrame with double brackets
 
         # Concatenate scaled features and scaled target
         real_data_scaled_tensor = torch.tensor(
@@ -113,10 +109,9 @@ class GANTrainer:
         g_losses = []
         d_losses = []
 
-        print(f"\n--- Training GAN for {self.region_name} region ---")
+        print(f"\n    Training GAN for {self.region_name} region    ")
         print(f"  Training on {len(real_data_df)} samples for {num_epochs} epochs with batch size {batch_size}")
 
-        # Labels for real and fake data
         real_label = 1.0
         fake_label = 0.0
 
@@ -128,17 +123,14 @@ class GANTrainer:
                 # --- Train Discriminator ---
                 self.optimizer_d.zero_grad()
 
-                # Train with real samples
                 label = torch.full((batch_size_actual,), real_label, dtype=torch.float32, device=self.device)
                 output = self.discriminator(real_samples).view(-1)
                 err_d_real = self.adversarial_loss(output, label)
                 err_d_real.backward()
 
-                # Train with fake samples
                 noise = self._generate_noise(batch_size_actual)
                 fake_samples = self.generator(noise)
                 label.fill_(fake_label)
-                # Detach fake_samples from generator's graph to only train discriminator
                 output = self.discriminator(fake_samples.detach()).view(-1)
                 err_d_fake = self.adversarial_loss(output, label)
                 err_d_fake.backward()
@@ -148,12 +140,13 @@ class GANTrainer:
 
                 # --- Train Generator ---
                 self.optimizer_g.zero_grad()
-                label.fill_(real_label)  # Generator wants discriminator to think fakes are real
-                output = self.discriminator(fake_samples).view(-1)  # Use fake_samples from current batch
+                label.fill_(real_label)
+                output = self.discriminator(fake_samples).view(-1)
                 err_g = self.adversarial_loss(output, label)
                 err_g.backward()
                 self.optimizer_g.step()
 
+                # Prints on every 10 epochs.
                 if settings.get('global_settings.debug_mode', False) and (i % 100 == 0 or i == len(dataloader) - 1):
                     print(f"DEBUG: [{epoch}/{num_epochs}][{i}/{len(dataloader)}] "
                           f"Loss_D: {err_d.item():.4f} Loss_G: {err_g.item():.4f}")
@@ -180,7 +173,7 @@ class GANTrainer:
             pd.DataFrame: A DataFrame containing the generated synthetic data in original scale,
                           including 'id' and 'operating_region' columns.
         """
-        self.generator.eval()  # Set generator to evaluation mode
+        self.generator.eval()
         with torch.no_grad():
             noise = self._generate_noise(num_samples)
             generated_data_scaled = self.generator(noise).cpu().numpy()
@@ -190,26 +183,48 @@ class GANTrainer:
         generated_log_Id_scaled = generated_data_scaled[:, -1].reshape(-1, 1)
 
         # Inverse transform features and target
-        generated_features_original = self.scaler_X.inverse_transform(generated_features_scaled)
-        generated_log_Id_original = self.scaler_y.inverse_transform(generated_log_Id_scaled)
+        #Creates a dummy df with correct column names for inverse_transform
+        features_for_model = settings.get('feature_engineering.input_features')
+        # Ensure the number of columns matches the scalers' expected features
+        if generated_features_scaled.shape[1] != len(features_for_model):
+            print(f"Warning: Number of generated features ({generated_features_scaled.shape[1]}) "
+                  f"does not match features_for_model ({len(features_for_model)}). "
+                  f"This might cause issues with scaler_X.inverse_transform.")
+            # Fallback: If there's a mismatch, try to use the columns from scaler_X directly if available
+            #TODO: Debug here. Not urgent since just an fallback logic
+            if hasattr(self.scaler_X, 'feature_names_in_') and self.scaler_X.feature_names_in_ is not None:
+                actual_features_for_scaler = list(self.scaler_X.feature_names_in_)
+            else:
+                actual_features_for_scaler = features_for_model[
+                                             :generated_features_scaled.shape[1]]
 
-        # Convert log_Id back to original Id (Amperes)
+        else:
+            actual_features_for_scaler = features_for_model
+
+        generated_features_original = self.scaler_X.inverse_transform(
+            pd.DataFrame(generated_features_scaled, columns=actual_features_for_scaler)
+        )
+        generated_log_Id_original = self.scaler_y.inverse_transform(
+            pd.DataFrame(generated_log_Id_scaled, columns=[settings.get('feature_engineering.target_feature')])
+        )
+
+        # Convert log_Id back to original
         generated_Id_original = np.power(10, generated_log_Id_original)
 
         # Create a DataFrame for the generated data
-        features_for_model = settings.get('feature_engineering.input_features')
-        generated_df = pd.DataFrame(generated_features_original, columns=features_for_model)
+        generated_df = pd.DataFrame(generated_features_original, columns=actual_features_for_scaler)
         generated_df['id'] = generated_Id_original.flatten()
 
-        # Add the 'operating_region' column for the generated data
+        # Add the 'operating_region' column
         generated_df['operating_region'] = self.region_name
 
-        # Ensure 'wOverL' is present if needed for later use (though GAN should generate it)
+        # Ensures 'wOverL' is present if needed for later use, though GAN should generate it
         if 'w' in generated_df.columns and 'l' in generated_df.columns and 'wOverL' not in generated_df.columns:
             generated_df['wOverL'] = generated_df['w'] / generated_df['l']
 
-        # Add other derived columns if necessary for consistency with original data structure
+        # Add other derived columns
         # These might not be directly generated by GAN but are needed for downstream processing
+        # TODO: Check if w/l is correctly produced by the GANs. If not it should be removed from GAN inputs and moved to here
         if 'vg' in generated_df.columns and 'vs' in generated_df.columns and 'vgs' not in generated_df.columns:
             generated_df['vgs'] = generated_df['vg'] - generated_df['vs']
         if 'vd' in generated_df.columns and 'vs' in generated_df.columns and 'vds' not in generated_df.columns:
@@ -220,20 +235,25 @@ class GANTrainer:
             generated_df['vsb'] = generated_df['vs'] - generated_df['vb']
 
         # Recalculate Vth and operating region for generated data to ensure consistency
-        # This is important as GAN might generate values that slightly shift regions
+        # This is important as GAN might generate values that shift region distribution
         if 'vsb' in generated_df.columns:
             vth_params = settings.get('vth_params')
-            generated_df['vth'] = generated_df['vsb'].apply(
-                lambda x: calculate_vth(x, vth0=vth_params['vth0'], gamma=vth_params['gamma'],
-                                        phi_f=vth_params['phi_f']))
-            generated_df['operating_region'] = generated_df.apply(
-                lambda row: classify_region(row, vth_approx_val=row['vth']), axis=1)
+            # Ensure vth_params are not None
+            if vth_params and all(k in vth_params for k in ['vth0', 'gamma', 'phi_f']):
+                generated_df['vth'] = generated_df['vsb'].apply(
+                    lambda x: calculate_vth(x, vth0=vth_params['vth0'], gamma=vth_params['gamma'],
+                                            phi_f=vth_params['phi_f']))
+                generated_df['operating_region'] = generated_df.apply(
+                    lambda row: classify_region(row, vth_approx_val=row['vth']), axis=1)
+            else:
+                print(
+                    "Warning: Vth parameters missing or incomplete in settings. Skipping Vth and operating region recalculation for synthetic data.")
 
         # Ensure 'id' is clipped to prevent issues if GAN generates negative or small values
         min_current_threshold = 1e-12
         generated_df['id'] = np.clip(generated_df['id'], a_min=min_current_threshold, a_max=None)
 
-        # Re-calculate log_Id based on the clipped 'id' for consistency
+        # Re-calculate log_Id based on the clipped 'id'
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", RuntimeWarning)
             generated_df['log_Id'] = np.log10(generated_df['id'])
@@ -252,13 +272,14 @@ class GANTrainer:
     def load_models(self):
         """Loads the Generator and Discriminator models."""
         if not self.generator_save_path.exists() or not self.discriminator_save_path.exists():
-            print(
-                f"Warning: GAN models for {self.region_name} not found at {self.generator_save_path} or {self.discriminator_save_path}.")
+            if settings.get('global_settings.debug_mode', False):
+                print(
+                    f"DEBUG: GAN models for {self.region_name} not found at {self.generator_save_path} or {self.discriminator_save_path}.")
             return False
         self.generator.load_state_dict(torch.load(self.generator_save_path, map_location=self.device))
         self.discriminator.load_state_dict(torch.load(self.discriminator_save_path, map_location=self.device))
-        self.generator.eval()  # Set to eval mode after loading
-        self.discriminator.eval()  # Set to eval mode after loading
+        self.generator.eval()
+        self.discriminator.eval()
         if settings.get('global_settings.debug_mode', False):
             print(f"DEBUG: Generator and Discriminator for {self.region_name} loaded.")
         return True

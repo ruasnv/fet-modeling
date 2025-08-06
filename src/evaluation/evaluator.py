@@ -61,22 +61,22 @@ class NNEvaluator:
         rmse_log = np.sqrt(mean_squared_error(y_test_np_scaled_log, y_pred_np_scaled_log))
 
         # Calculate MAPE on the log_Id scale
-        # No clipping needed here as log_Id values should already be finite and non-zero
-        # due to the clipping applied during preprocessing.
+        # No clipping needed here as log_Id values should already be finite and nonzero
+        # due to the clipping during preprocessing.
         with warnings.catch_warnings():
-            warnings.simplefilter("ignore", RuntimeWarning)  # Ignore warnings like divide by zero
+            warnings.simplefilter("ignore", RuntimeWarning)
             mape_log = mean_absolute_percentage_error(y_test_np_scaled_log, y_pred_np_scaled_log) * 100
 
         metrics = {
             'r2_log': r2_log,
             'mae_log': mae_log,
             'rmse_log': rmse_log,
-            'mape_log': mape_log,  # Add MAPE on log scale
+            'mape_log': mape_log
         }
 
         # --- Metrics on the original Id scale ---
         if X_test_original_df is not None and 'id' in X_test_original_df.columns:
-            # Use the TRUE original 'id' values from the DataFrame for ground truth
+            # Use the original 'id' values from the DataFrame
             y_test_original_id = X_test_original_df['id'].values.flatten()
 
             # Inverse transform predictions from log_Id scale to original Id scale
@@ -84,18 +84,17 @@ class NNEvaluator:
             y_pred_original_id = np.power(10, y_pred_orig_log)
 
             # Clip very small values in both true and predicted arrays for MAPE calculation
-            # This prevents division by zero or extremely large percentage errors for near-zero values.
-            # A small positive epsilon for true values to prevent division by zero in MAPE
-            epsilon = 1e-18  # A very small current in Amperes (10^-18 A = attoampere)
+            # This prevents division-by-zero or large percentage errors for near-zero values.
+            epsilon = 1e-18  # Very small current in Amperes (10^-18 A = attoampere)
             y_test_original_id_clipped = np.clip(y_test_original_id, epsilon, None)
             y_pred_original_id_clipped = np.clip(y_pred_original_id, epsilon, None)
 
             mae_orig = mean_absolute_error(y_test_original_id, y_pred_original_id)
             rmse_orig = np.sqrt(mean_squared_error(y_test_original_id, y_pred_original_id))
 
-            # Calculate MAPE using the clipped values to avoid inf/NaN
+            # Calculate MAPE using the clipped values
             with warnings.catch_warnings():
-                warnings.simplefilter("ignore", RuntimeWarning)  # Ignore warnings like divide by zero
+                warnings.simplefilter("ignore", RuntimeWarning)
                 mape_orig = mean_absolute_percentage_error(y_test_original_id_clipped, y_pred_original_id_clipped) * 100
 
             metrics.update({
@@ -114,19 +113,18 @@ class NNEvaluator:
 
         # Print evaluation results
         print(f"\nEvaluating Model: {self.model.__class__.__name__}")
-        print(f"  R-squared (R2) [log_Id scale]: {metrics['r2_log']:.4f}")
-        print(f"  Mean Absolute Error (MAE) [log_Id scale]: {metrics['mae_log']:.4f}")
-        print(f"  Root Mean Squared Error (RMSE) [log_Id scale]: {metrics['rmse_log']:.4f}")
-        print(
-            f"  Mean Absolute Percentage Error (MAPE) [log_Id scale]: {metrics['mape_log']:.2f}%")  # Print MAPE on log scale
+        print(f"  R2 [log_Id scale]: {metrics['r2_log']:.4f}")
+        print(f"  MAE [log_Id scale]: {metrics['mae_log']:.4f}")
+        print(f"  RMSE [log_Id scale]: {metrics['rmse_log']:.4f}")
+        print( f"  MAPE [log_Id scale]: {metrics['mape_log']:.2f}%")
 
         if 'mae_orig' in metrics and not np.isnan(metrics['mae_orig']):
-            print(f"  Mean Absolute Error (MAE) [Original Id scale]: {metrics['mae_orig']:.4e}")
-            print(f"  Root Mean Squared Error (RMSE) [Original Id scale]: {metrics['rmse_orig']:.4e}")
-            print(f"  Mean Absolute Percentage Error (MAPE) [Original Id scale]: {metrics['mape_orig']:.2f}%")
+            print(f"  MAE [Original Id scale]: {metrics['mae_orig']:.4e}")
+            print(f"  RMSE [Original Id scale]: {metrics['rmse_orig']:.4e}")
+            print(f"  MAPE [Original Id scale]: {metrics['mape_orig']:.2f}%")
         else:
             print("  Original scale metrics not available.")
 
-        # Return metrics in a dictionary for easy access and logging
+        # Return metrics in a dictionary
         return metrics
 

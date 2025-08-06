@@ -1,7 +1,7 @@
 import pandas as pd
 from src.config import settings
 from pathlib import Path
-from src.data_processing.preprocessor import DataPreprocessor  # To load processed data
+from src.data_processing.preprocessor import DataPreprocessor
 
 
 class GANDataHandler:
@@ -34,7 +34,7 @@ class GANDataHandler:
                   are pandas DataFrames containing the data for that region.
                   Returns None if data loading fails.
         """
-        print("\n--- GAN Data Preparation: Loading and Segregating Data ---")
+        print("\n    GAN Data Preparation: Loading and Segregating Data    ")
 
         # Load the full filtered original data from the preprocessor
         if not self.preprocessor.load_or_process_data(force_reprocess=force_reprocess):
@@ -42,13 +42,12 @@ class GANDataHandler:
             return None
 
         self.full_original_df = self.preprocessor.get_filtered_original_data()
-        self.scalers = self.preprocessor.get_scalers()  # Store scalers for later use with GANs
+        self.scalers = self.preprocessor.get_scalers()  # Store scalers for later use
 
         if self.full_original_df.empty:
             print("No data available after initial processing for GAN segregation. Exiting.")
             return None
 
-        # Define the operating regions
         regions = ["Cut-off", "Linear", "Saturation"]
 
         print(f"Total samples in full original data: {len(self.full_original_df)}")
@@ -93,7 +92,7 @@ class GANDataHandler:
                                             Keys are region names, values are DataFrames of synthetic data.
             output_path (Path): The path where the final combined and balanced DataFrame will be saved.
         """
-        print("\n--- Combining Original and Augmented Data ---")
+        print("\n    Combining Original and Augmented Data    ")
         combined_df_list = []
 
         # Add original data for all regions

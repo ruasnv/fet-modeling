@@ -23,6 +23,7 @@ def run_preprocess_data(force_reprocess=False):
         return None
 
 if __name__ == "__main__":
+    # Not necessary for simple run
     # Example of how to use force_reprocess via a simple argument
     import argparse
     parser = argparse.ArgumentParser(description="Run data preprocessing pipeline.")

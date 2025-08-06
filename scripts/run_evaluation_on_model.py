@@ -1,12 +1,11 @@
 # scripts/run_evaluation_on_model.py - Evaluates the final trained model and generates plots
 from pathlib import Path
-
 import pandas as pd
 import torch
 import os
 import sys
 import matplotlib
-matplotlib.use('Agg')  # Use 'Agg' backend for non-interactive plotting
+matplotlib.use('Agg')
 
 # Append the parent directory to the system path to allow module imports
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -25,11 +24,11 @@ def run_evaluation():
     It loads processed data, loads a saved model, evaluates its performance
     on the final held-out test set, and generates key characteristic plots.
     """
-    print("--- Starting Model Evaluation Script ---")
-    # Set up global environment settings
+    print("   Starting Model Evaluation Script   ")
+    # Set up global settings
     setup_environment()
 
-    # --- Extract relevant configurations ---
+    # Get relevant config
     processed_data_dir = settings.get('paths.processed_data_dir')
     trained_model_dir = settings.get('paths.trained_model_dir')
     report_output_dir = settings.get('paths.report_output_dir')
@@ -38,8 +37,8 @@ def run_evaluation():
     # Ensure plots directory exists
     os.makedirs(plots_output_dir, exist_ok=True)
 
-    # --- Load Processed Data ---
-    print("\n--- Loading Processed Data ---")
+    # Load Processed Data
+    print("\n Loading Processed Data ")
     dp = DataPreprocessor()
     if not dp.load_processed_data(processed_data_dir):
         print(f"Error: Processed data not found in {processed_data_dir}.")
@@ -49,8 +48,8 @@ def run_evaluation():
     features_for_model = dp.get_features_for_model()
     nn_input_dim = len(features_for_model)
 
-    # --- Load Trained Model ---
-    print("\n--- Loading Trained Model ---")
+    # Load Trained Model
+    print("\n Loading Trained Model ")
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Using device: {device}")
 
@@ -65,8 +64,8 @@ def run_evaluation():
     model.load_state_dict(torch.load(model_path, map_location=device))
     model.eval()
 
-    # --- Evaluate on Final Test Set ---
-    print("\n--- Evaluating on Final Test Set ---")
+    # Evaluate on Final Test Set
+    print("\n   Evaluating on Final Test Set   ")
     X_test_scaled, y_test_scaled, X_test_original_df = dp.get_final_test_data()
     evaluator = NNEvaluator(model, device, *dp.get_scalers())
 
@@ -74,7 +73,7 @@ def run_evaluation():
     results = evaluator.evaluate_model(
         torch.tensor(X_test_scaled, dtype=torch.float32),
         torch.tensor(y_test_scaled, dtype=torch.float32),
-        X_test_original_df=X_test_original_df  # Pass original df for original scale metrics
+        X_test_original_df=X_test_original_df  #Original df for original scale metrics
     )
 
     print("Final Test Set Evaluation Results:")
@@ -89,14 +88,14 @@ def run_evaluation():
     final_metrics_df.to_csv(final_metrics_path, index=False)
     print(f"Final model metrics saved to: {final_metrics_path}")
 
-    # --- Generate Characteristic Plots ---
-    print("\n--- Generating Characteristic Plots ---")
+    # Generate Characteristic Plots
+    print("\n    Generating Characteristic Plots   ")
 
     # The `determine_characteristic_plot_cases` function helps identify valid plotting cases
     # from the original data based on device size and temperature
     dynamic_plot_cases = determine_characteristic_plot_cases(dp.get_filtered_original_data())
 
-    if not dynamic_plot_cases:  # Check if any cases were found
+    if not dynamic_plot_cases:  # Check if any cases were found, RARE but keep for Debugging
         print("Skipping plot generation: No valid dynamic plot cases could be determined from the data.")
         return
 
@@ -116,7 +115,7 @@ def run_evaluation():
     )
 
     print(f"\nEvaluation and plots complete. Results saved to: {plots_output_dir}")
-    print("--- Model Evaluation Script Finished ---")
+    print("   Model Evaluation Script Finished   ")
 
 
 if __name__ == "__main__":

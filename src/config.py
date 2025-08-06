@@ -6,8 +6,8 @@ from pathlib import Path
 
 class AppConfig:
     _instance = None
-    _config_data = {}  # This will store all your merged config variables
-    _project_root = None  # Store the project root once found
+    _config_data = {}  # This will store merged config variables
+    _project_root = None  # Store the project root
 
     def __new__(cls):
         if cls._instance is None:
@@ -46,20 +46,17 @@ class AppConfig:
             if not config_files:
                 raise FileNotFoundError(f"No YAML config files found in {config_dir}")
 
-            # Merge configurations. Order matters for overrides:
-            # If main_config.yaml, data_config.yaml, simple_nn_config.yaml are loaded in that order,
-            # simple_nn_config.yaml can override keys from data_config.yaml.
+            # Merge configurations. Order matters for overrides
             # `sorted` ensures consistent loading order if files have similar names.
             for config_file_path in config_files:
                 #print(f"DEBUG: Loading config file: {config_file_path}")
                 with open(config_file_path, "rt") as f:
                     loaded_data = yaml.safe_load(f)
                     if loaded_data:
-                        self._config_data.update(loaded_data)  # Merges, overriding duplicates
+                        self._config_data.update(loaded_data)
 
-            # Define the specific keys within your merged config that represent paths
-            # These are the *final* keys that will hold Path objects after processing
-            # Ensure these match the structure of your merged config data
+            #TODO: This should be done dynamically
+
             path_keys_to_process = [
                 "paths.raw_data_path",
                 "paths.processed_data_dir",
@@ -67,8 +64,6 @@ class AppConfig:
                 "paths.report_output_dir",
                 "paths.eda_output_dir",
                 "paths.plots_output_dir",
-                # Add any other keys from your config that represent relative paths
-                # e.g., if you had 'data.specific_file_path'
             ]
 
             # Process all relative paths found in _config_data to be absolute Path objects
@@ -76,7 +71,7 @@ class AppConfig:
                 parts = full_key_path.split('.')
                 current_dict = self._config_data
                 original_value = None  # Store the actual string value
-                target_key = parts[-1]  # The last part is the key we want to modify
+                target_key = parts[-1]  # The last part is the key
 
                 # Traverse to the dictionary containing the actual path string
                 found_container = True
@@ -115,7 +110,7 @@ class AppConfig:
 
         except Exception as e:
             print(f"Error loading configuration: {e}")
-            raise  # Re-raise to stop execution if config fails
+            raise  # Reraise to stop execution if config fails
 
     # Method to get any config value
     def get(self, key, default=None):
@@ -129,11 +124,5 @@ class AppConfig:
                 return default  # Key or path segment not found
         return current_data
 
-    # Make the entire config dictionary accessible (optional, but convenient for many variables)
-    @property
-    def all_config(self):
-        return self._config_data
-
-
-# Create a global instance of AppConfig that can be imported
+# Create a global instance of AppConfig
 settings = AppConfig()
