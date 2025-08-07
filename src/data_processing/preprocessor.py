@@ -214,7 +214,7 @@ class DataPreprocessor:
                 random_state=random_state,
                 stratify=cv_pool_stratify_labels
             )
-        # FIX: Ensure y_cv_pool and y_final_test are DataFrames after train_test_split
+        # Ensure y_cv_pool and y_final_test are DataFrames after train_test_split
         # train_test_split can sometimes return a Series if the input y was a single-column DataFrame
         if isinstance(y_cv_pool, pd.Series):
             y_cv_pool = y_cv_pool.to_frame(name=self.target_feature)

@@ -63,7 +63,8 @@ class AppConfig:
                 "paths.trained_model_dir",
                 "paths.report_output_dir",
                 "paths.eda_output_dir",
-                "paths.plots_output_dir",
+                "paths.loss_output_dir",
+                "paths.aug_data_dir",
             ]
 
             # Process all relative paths found in _config_data to be absolute Path objects

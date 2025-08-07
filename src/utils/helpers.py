@@ -4,6 +4,7 @@ import numpy as np
 import os
 import matplotlib.pyplot as plt
 from src.config import settings
+import torch
 
 def setup_environment():
     """
@@ -12,7 +13,6 @@ def setup_environment():
 
     Args:
     """
-
     report_output_dir = settings.get('paths.report_output_dir')
     # Apply Matplotlib style and parameters
     plt.style.use(settings.get('global_settings.matplotlib_style'))
@@ -26,70 +26,73 @@ def setup_environment():
     os.makedirs(report_output_dir, exist_ok=True)
     print(f"Report output base directory created/ensured: {report_output_dir}")
 
-#TODO: This method was added to solve the plotting issue I faced.
-# Originally this is not the best solution for this problem.
-# Ideally it should find the best and worst performing devices and plot them.
-
-def suggest_best_worst_cases(df, region_name):
+def suggest_best_worst_cases(df_region, region_name, predictions_for_region, min_points_for_case=5):
     """
     Suggests a 'best' and 'worst' case scenario for a given operating region
-    based on average Id across unique (W, L, Vg) combinations.
-
-    'Best' is defined as the combination with the highest average Id.
-    'Worst' is defined as the combination with the lowest average Id.
+    based on the average prediction error, ensuring each case has a minimum number of data points.
 
     Args:
-        df (pd.DataFrame): The filtered and feature-engineered DataFrame.
-        region_name (str): The specific operating region to analyze (e.g., "Cut-off", "Linear", "Saturation").
+        df_region (pd.DataFrame): The DataFrame subset for the specific region.
+        region_name (str): The name of the operating region to analyze.
+        predictions_for_region (np.ndarray): The model's predictions for the data in df_region.
+        min_points_for_case (int): The minimum number of data points a case must have to be considered.
 
     Returns:
         tuple: (best_case_dict, worst_case_dict)
-               Each dict contains 'W', 'L', 'Vg_const', 'Vbs_val', 'Vds_range', 'label', 'plot_type'.
-               Returns (None, None) if no data is found.
+               Each dict contains device parameters for plotting.
+               Returns (None, None) if no valid cases are found.
     """
-    df_region = df[df['operating_region'] == region_name].copy()
-
     if df_region.empty:
         print(f"No data found for region: {region_name}. Cannot suggest best/worst cases.")
         return None, None
 
-    # Group by W, L, Vg, Vb triplets and calculate mean Id
-    # Including 'vb' in grouping to ensure specific Vbs values are considered.
-    group_cols = ['w', 'l', 'vg', 'vb']
-    grouped = df_region.groupby(group_cols)['id'].mean().reset_index()
+    df_region['prediction_error'] = (df_region['id'].values - predictions_for_region.flatten()) ** 2
 
-    if grouped.empty:
-        print(f"No grouped data found for region: {region_name}. Cannot suggest best/worst cases.")
+    # Group by unique case parameters to find the number of data points per case
+    group_cols = ['w', 'l', 'vg', 'vb']
+    case_counts = df_region.groupby(group_cols).size().reset_index(name='count')
+
+    # Filter out cases with fewer than the minimum required data points
+    valid_cases = case_counts[case_counts['count'] >= min_points_for_case]
+
+    if valid_cases.empty:
+        print(f"No cases in '{region_name}' region have at least {min_points_for_case} data points. Skipping.")
         return None, None
 
-    # Find the max/min average Id combinations (in Amperes)
-    best_case_series = grouped.loc[grouped['id'].idxmax()]
-    worst_case_series = grouped.loc[grouped['id'].idxmin()]
+    # find the best and worst cases only from the valid cases
+    grouped_errors = df_region.groupby(group_cols)['prediction_error'].mean().reset_index()
+
+    # Merge the valid cases with their corresponding mean error
+    valid_cases_with_errors = pd.merge(valid_cases, grouped_errors, on=group_cols)
+
+    if valid_cases_with_errors.empty:
+        return None, None
+
+    # Find the combinations with the minimum and maximum MAE
+    best_case_series = valid_cases_with_errors.loc[valid_cases_with_errors['prediction_error'].idxmin()]
+    worst_case_series = valid_cases_with_errors.loc[valid_cases_with_errors['prediction_error'].idxmax()]
+
+    # Calculate the Vds range for the entire region
+    region_min_vds = df_region['vd'].min()
+    region_max_vds = df_region['vd'].max()
+    dynamic_vds_range = [region_min_vds, region_max_vds]
 
     def format_case_for_plotter(case_series, label_prefix):
-        # Extract the specific row's Vds range for this combination
+        # The Vds range is now set to the dynamic range calculated for the entire region
+        # This will ensure the predicted line covers the full sweep of the available data.
         specific_case_subset = df_region[
             (np.isclose(df_region['w'], case_series['w'], atol=1e-9)) &
             (np.isclose(df_region['l'], case_series['l'], atol=1e-9)) &
             (np.isclose(df_region['vg'], case_series['vg'], atol=1e-2)) &
             (np.isclose(df_region['vb'], case_series['vb'], atol=1e-2))
-        ]
-
-        # Use actual Vds range from the data for the selected combination
-        # Fallback to a default range if subset is empty or Vds range is invalid
-        case_min_vds = specific_case_subset['vd'].min() if not specific_case_subset.empty and not specific_case_subset['vd'].empty else 0.0
-        case_max_vds = specific_case_subset['vd'].max() if not specific_case_subset.empty and not specific_case_subset['vd'].empty else 3.3
-
-        # Ensure min_vds is less than or equal to max_vds
-        if case_min_vds > case_max_vds:
-            case_min_vds, case_max_vds = 0.0, 3.3 # Fallback to default if range is inverted
+            ]
 
         return {
-            'device_size': [case_series['w'] * 1e6, case_series['l'] * 1e6], # Convert to um
+            'device_size': [case_series['w'] * 1e6, case_series['l'] * 1e6],
             'vbs_val': case_series['vb'],
-            'plot_type': "Id_Vds_fixed_Vgs", # Always Id-Vds for these cases
-            'fixed_vgs_vals': [case_series['vg']], # The Vg for this specific case
-            'Vds_range': [case_min_vds, case_max_vds],
+            'plot_type': "Id_Vds_fixed_Vgs",
+            'fixed_vgs_vals': [case_series['vg']],
+            'Vds_range': dynamic_vds_range,  # Use the dynamic range here
             'label': f"{label_prefix} - W={case_series['w'] * 1e6:.1f}µm, L={case_series['l'] * 1e6:.1f}µm, Vbs={case_series['vb']:.1f}V, Vgs={case_series['vg']:.2f}V"
         }
 
@@ -98,26 +101,47 @@ def suggest_best_worst_cases(df, region_name):
 
     return best_case_dict, worst_case_dict
 
-
-def determine_characteristic_plot_cases(full_filtered_original_df):
+def determine_characteristic_plot_cases(model, full_filtered_original_df, scaler_X, scaler_y, features_for_model,
+                                        device):
     """
     Determines best and worst case scenarios for Id-Vds characteristic plots
-    across different operating regions.
-
-    Args:
-        full_filtered_original_df (pd.DataFrame): The preprocessed DataFrame
-            containing 'operating_region', 'w', 'l', 'vg', 'id', 'vd', 'vb'.
-
-    Returns:
-        dict: A dictionary structured for plotting, where keys are operating regions
-              and values are lists of 'best' and 'worst' case dictionaries.
-              Each inner dict is formatted for direct use by Plotter.
+    across different operating regions based on model prediction error.
     """
+    model.eval()
+    full_filtered_original_df = full_filtered_original_df.reset_index(drop=True)
+
+    X_full = full_filtered_original_df[features_for_model]
+    X_full_scaled = scaler_X.transform(X_full)
+    X_tensor = torch.tensor(X_full_scaled, dtype=torch.float32).to(device)
+
+    with torch.no_grad():
+        y_pred_scaled = model(X_tensor).cpu().numpy()
+        full_predictions = scaler_y.inverse_transform(y_pred_scaled)
+        full_predictions = np.power(10, full_predictions).flatten()
+
     regions = ["Cut-off", "Linear", "Saturation"]
     plot_cases_by_region = {}
 
     for region in regions:
-        best_case, worst_case = suggest_best_worst_cases(full_filtered_original_df, region)
+        # Get the DataFrame for the current region
+        df_region_subset = full_filtered_original_df[full_filtered_original_df['operating_region'] == region].copy()
+
+        if df_region_subset.empty:
+            print(f"Skipping characteristic plot cases for {region} due to insufficient data.")
+            continue
+
+        # Get the indices of the subset, which are now correctly 0-based
+        original_indices = df_region_subset.index.values
+
+        # Use those original indices to slice the full_predictions array
+        predictions_for_region = full_predictions[original_indices]
+
+        best_case, worst_case = suggest_best_worst_cases(
+            df_region_subset,
+            region,
+            predictions_for_region
+        )
+
         if best_case and worst_case:
             plot_cases_by_region[region] = [best_case, worst_case]
         else:

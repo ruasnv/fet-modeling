@@ -11,10 +11,11 @@ global_settings:
 paths:
   raw_data_path: 'data/nmoshv.csv'
   processed_data_dir: 'data/processed'
-  trained_model_dir: 'models/trained'
-  report_output_dir: 'results/reports'
+  trained_model_dir: 'models'
+  report_output_dir: 'results'
   eda_output_dir: 'results/eda'
-  plots_output_dir: 'results/plots'
+  loss_output_dir: 'results/losses'
+  aug_data_dir: 'data/augmented'
 
 filtering:
   id_greater_than_zero: True # Filter out data points where 'id' <= 0

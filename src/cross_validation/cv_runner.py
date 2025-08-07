@@ -18,8 +18,8 @@ class CrossValidator:
         self.features_for_model = features_for_model
 
     def run_cv(self, model_config, X_cv_scaled, y_cv_scaled, X_cv_original_df, cv_fold_indices,
-               num_epochs=100, batch_size=64, model_save_base_dir="trained_models/k_fold_models",
-               report_output_dir="reports/models",
+               num_epochs=100, batch_size=64, model_save_base_dir="models/k_fold_models",
+               report_output_dir="results",
                skip_if_exists=True):
         """
         Runs K-fold cross-validation for a PyTorch model.
@@ -130,31 +130,45 @@ class CrossValidator:
 
         print(f"\nCross-Validation Complete for {model_name} ({n_splits} folds)")
 
+
         # Detailed results DataFrame
         detailed_results_df = pd.DataFrame(all_fold_metrics)
         detailed_results_df['Model'] = model_name
 
         # Calculate averages and standard deviations from all_fold_metrics
-        # This is where the summary metrics are correctly calculated
         avg_metrics = {metric: np.mean(values) for metric, values in all_fold_metrics.items()}
         std_metrics = {metric: np.std(values) for metric, values in all_fold_metrics.items()}
 
-        # Construct summary_results_df using the correctly calculated avg_metrics/std_metrics
+        # Construct summary_results_df with the standardized metric names
         summary_results_df = pd.DataFrame({
             'Model': [model_name],
-            'R2_log_Avg': [avg_metrics.get('r2_log', np.nan)],
-            'R2_log_Std': [std_metrics.get('r2_log', np.nan)],
-            'MAE_Orig_Avg': [avg_metrics.get('mae_orig', np.nan)],
-            'MAE_Orig_Std': [std_metrics.get('mae_orig', np.nan)],
-            'RMSE_Orig_Avg': [avg_metrics.get('rmse_orig', np.nan)],
-            'RMSE_Orig_Std': [std_metrics.get('rmse_orig', np.nan)],
-            'MAPE_Orig_Avg': [avg_metrics.get('mape_orig', np.nan)],
-            'MAPE_Orig_Std': [std_metrics.get('mape_orig', np.nan)]
+            # Standardized metric names for log scale
+            'R2_log_Avg': [avg_metrics.get('R2_log', np.nan)],
+            'R2_log_Std': [std_metrics.get('R2_log', np.nan)],
+            'MAE_log_Avg': [avg_metrics.get('MAE_log', np.nan)],
+            'MAE_log_Std': [std_metrics.get('MAE_log', np.nan)],
+            'RMSE_log_Avg': [avg_metrics.get('RMSE_log', np.nan)],
+            'RMSE_log_Std': [std_metrics.get('RMSE_log', np.nan)],
+            'MAPE_log_Avg': [avg_metrics.get('MAPE_log', np.nan)],
+            'MAPE_log_Std': [std_metrics.get('MAPE_log', np.nan)],
+            # Standardized metric names for original scale
+            'MAE_Orig_Avg': [avg_metrics.get('MAE_Orig', np.nan)],
+            'MAE_Orig_Std': [std_metrics.get('MAE_Orig', np.nan)],
+            'RMSE_Orig_Avg': [avg_metrics.get('RMSE_Orig', np.nan)],
+            'RMSE_Orig_Std': [std_metrics.get('RMSE_Orig', np.nan)],
+            'MAPE_Orig_Avg': [avg_metrics.get('MAPE_Orig', np.nan)],
+            'MAPE_Orig_Std': [std_metrics.get('MAPE_Orig', np.nan)]
         })
 
         formatter = {
             'R2_log_Avg': '{:.4f}'.format,
             'R2_log_Std': '{:.4f}'.format,
+            'MAE_log_Avg': '{:.4f}'.format,
+            'MAE_log_Std': '{:.4f}'.format,
+            'RMSE_log_Avg': '{:.4f}'.format,
+            'RMSE_log_Std': '{:.4f}'.format,
+            'MAPE_log_Avg': '{:.4f}'.format,
+            'MAPE_log_Std': '{:.4f}'.format,
             'MAE_Orig_Avg': '{:.4e}'.format,
             'MAE_Orig_Std': '{:.4e}'.format,
             'RMSE_Orig_Avg': '{:.4e}'.format,
@@ -166,4 +180,104 @@ class CrossValidator:
         print("\nAverage and Standard Deviation of Metrics Across Folds:")
         print(summary_results_df.to_string(index=False, formatters=formatter))
         return summary_results_df, detailed_results_df
+
+
+    def evaluate_fold_models(self, model_config, X_cv_scaled, y_cv_scaled, X_cv_original_df, cv_fold_indices,
+                                 model_save_base_dir):
+            """
+            Loads and evaluates the pre-trained models from each fold on their respective test sets.
+            This is a separate process from training, allowing for post-hoc analysis.
+
+            Returns:
+                pd.DataFrame: A DataFrame containing average and std deviation of metrics across folds.
+                pd.DataFrame: A DataFrame with detailed metrics for each fold.
+            """
+            model_name = model_config['name']
+            model_class = model_config['model_class']
+            model_params = model_config.get('model_params', {})
+            evaluator_class = model_config['evaluator_class']
+
+            n_splits = len(cv_fold_indices)
+            print(f"\n--- Starting Evaluation of {n_splits} Fold Models for: {model_name} ---")
+
+            all_fold_metrics = defaultdict(list)
+
+            for fold, (_, test_index) in enumerate(cv_fold_indices):
+                print(f"  Evaluating Fold {fold + 1}/{n_splits}")
+
+                model_instance = model_class(**model_params).to(self.device)
+                fold_model_path = model_save_base_dir.joinpath(f'model_fold_{fold + 1}.pth')
+
+                if not fold_model_path.exists():
+                    print(f"  Error: Trained model not found for Fold {fold + 1} at {fold_model_path}. Skipping.")
+                    continue
+
+                # Load the model
+                model_instance.load_state_dict(torch.load(fold_model_path, map_location=self.device))
+                model_instance.eval() # Set to evaluation mode
+
+                evaluator = evaluator_class(model_instance, self.device, self.scaler_x, self.scaler_y)
+
+                X_test_fold_scaled = X_cv_scaled[test_index]
+                y_test_fold_scaled = y_cv_scaled[test_index]
+                X_test_original_df_fold = X_cv_original_df.iloc[test_index]
+
+                metrics = evaluator.evaluate_model(
+                    X_test_fold_scaled, y_test_fold_scaled,
+                    X_test_original_df=X_test_original_df_fold
+                )
+
+                for key, value in metrics.items():
+                    if np.isfinite(value):
+                        all_fold_metrics[key].append(value)
+                    else:
+                        print(f"Warning: Non-finite value for metric '{key}' in Fold {fold + 1}. Skipping.")
+
+            # Recalculate and return summary metrics just as in run_cv
+            detailed_results_df = pd.DataFrame(all_fold_metrics)
+            detailed_results_df['Model'] = model_name
+
+            avg_metrics = {metric: np.mean(values) for metric, values in all_fold_metrics.items()}
+            std_metrics = {metric: np.std(values) for metric, values in all_fold_metrics.items()}
+            # Construct summary_results_df with the standardized metric names
+            summary_results_df = pd.DataFrame({
+                'Model': [model_name],
+                # Standardized metric names for log scale
+                'R2_log_Avg': [avg_metrics.get('R2_log', np.nan)],
+                'R2_log_Std': [std_metrics.get('R2_log', np.nan)],
+                'MAE_log_Avg': [avg_metrics.get('MAE_log', np.nan)],
+                'MAE_log_Std': [std_metrics.get('MAE_log', np.nan)],
+                'RMSE_log_Avg': [avg_metrics.get('RMSE_log', np.nan)],
+                'RMSE_log_Std': [std_metrics.get('RMSE_log', np.nan)],
+                'MAPE_log_Avg': [avg_metrics.get('MAPE_log', np.nan)],
+                'MAPE_log_Std': [std_metrics.get('MAPE_log', np.nan)],
+                # Standardized metric names for original scale
+                'MAE_Orig_Avg': [avg_metrics.get('MAE_Orig', np.nan)],
+                'MAE_Orig_Std': [std_metrics.get('MAE_Orig', np.nan)],
+                'RMSE_Orig_Avg': [avg_metrics.get('RMSE_Orig', np.nan)],
+                'RMSE_Orig_Std': [std_metrics.get('RMSE_Orig', np.nan)],
+                'MAPE_Orig_Avg': [avg_metrics.get('MAPE_Orig', np.nan)],
+                'MAPE_Orig_Std': [std_metrics.get('MAPE_Orig', np.nan)]
+            })
+
+            formatter = {
+                'R2_log_Avg': '{:.4f}'.format,
+                'R2_log_Std': '{:.4f}'.format,
+                'MAE_log_Avg': '{:.4f}'.format,
+                'MAE_log_Std': '{:.4f}'.format,
+                'RMSE_log_Avg': '{:.4f}'.format,
+                'RMSE_log_Std': '{:.4f}'.format,
+                'MAPE_log_Avg': '{:.4f}'.format,
+                'MAPE_log_Std': '{:.4f}'.format,
+                'MAE_Orig_Avg': '{:.4e}'.format,
+                'MAE_Orig_Std': '{:.4e}'.format,
+                'RMSE_Orig_Avg': '{:.4e}'.format,
+                'RMSE_Orig_Std': '{:.4e}'.format,
+                'MAPE_Orig_Avg': '{:.4f}'.format,
+                'MAPE_Orig_Std': '{:.4f}'.format
+            }
+
+            print("\nAverage and Standard Deviation of Metrics Across Folds:")
+            print(summary_results_df.to_string(index=False, formatters=formatter))
+            return summary_results_df, detailed_results_df
 
