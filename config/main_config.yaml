@@ -79,3 +79,7 @@ gan_params:
   discriminator_learning_rate: 0.0002
   additional_majority_samples: 200
 
+gan_input:
+  input_features: [ 'vg', 'vd', 'vb', 'w', 'l']
+  target_feature: 'log_Id'
+
