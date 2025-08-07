@@ -15,7 +15,6 @@ from src.data_processing.preprocessor import DataPreprocessor
 from src.models.simple_nn import SimpleNN
 from src.training.simple_nn_trainer import NNTrainer
 from src.evaluation.evaluator import NNEvaluator
-from src.utils.plotter import Plotter
 from src.utils.helpers import setup_environment
 from src.config import settings
 from src.cross_validation.cv_runner import CrossValidator
@@ -76,7 +75,7 @@ def main():
             X_cv_original_df=dp.get_cv_data()[2],
             cv_fold_indices=dp.get_cv_data()[3],
             model_save_base_dir=Path(settings.get("paths.trained_model_dir")) / 'k_fold_models',
-            report_output_dir=Path(settings.get("paths.loss_output_dir")),
+            report_output_dir= settings.get("paths.loss_output_dir"),
             skip_if_exists=settings.get("run_flags.skip_training_if_exists"),
         )
         print("Cross-Validation complete.")

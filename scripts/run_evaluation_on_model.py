@@ -1,4 +1,5 @@
-# scripts/run_evaluation_on_model.py - Evaluates the final trained model and generates plots
+# scripts/run_evaluation_on_model.py
+
 from pathlib import Path
 import pandas as pd
 import torch
@@ -25,19 +26,15 @@ def run_evaluation():
     on the final held-out test set, and generates key characteristic plots.
     """
     print("   Starting Model Evaluation Script   ")
-    # Set up global settings
     setup_environment()
 
-    # Get relevant config
     processed_data_dir = settings.get('paths.processed_data_dir')
     trained_model_dir = settings.get('paths.trained_model_dir')
     report_output_dir = settings.get('paths.report_output_dir')
     plots_output_dir = Path.joinpath(report_output_dir, 'final_model_evaluation')
 
-    # Ensure plots directory exists
     os.makedirs(plots_output_dir, exist_ok=True)
 
-    # Load Processed Data
     print("\n Loading Processed Data ")
     dp = DataPreprocessor()
     if not dp.load_processed_data(processed_data_dir):
@@ -48,7 +45,6 @@ def run_evaluation():
     features_for_model = dp.get_features_for_model()
     nn_input_dim = len(features_for_model)
 
-    # Load Trained Model
     print("\n Loading Trained Model ")
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Using device: {device}")
@@ -69,11 +65,10 @@ def run_evaluation():
     X_test_scaled, y_test_scaled, X_test_original_df = dp.get_final_test_data()
     evaluator = NNEvaluator(model, device, *dp.get_scalers())
 
-    # The evaluator returns a dictionary of metrics
     results = evaluator.evaluate_model(
         torch.tensor(X_test_scaled, dtype=torch.float32),
         torch.tensor(y_test_scaled, dtype=torch.float32),
-        X_test_original_df=X_test_original_df  #Original df for original scale metrics
+        X_test_original_df=X_test_original_df
     )
 
     print("Final Test Set Evaluation Results:")
@@ -83,16 +78,13 @@ def run_evaluation():
         else:
             print(f"  {metric}: {value}")
 
-    final_metrics_df = pd.DataFrame([results])  # Convert dict to DataFrame
+    final_metrics_df = pd.DataFrame([results])
     final_metrics_path = Path(report_output_dir) / 'final_model_metrics.csv'
     final_metrics_df.to_csv(final_metrics_path, index=False)
     print(f"Final model metrics saved to: {final_metrics_path}")
 
-    # Generate Characteristic Plots
     print("\n    Generating Characteristic Plots   ")
 
-    # The `determine_characteristic_plot_cases` function helps identify valid plotting cases
-    # from the original data based on device size and temperature
     dynamic_plot_cases = determine_characteristic_plot_cases(
         model=model,
         full_filtered_original_df=dp.get_filtered_original_data(),
@@ -102,7 +94,7 @@ def run_evaluation():
         device=device
     )
 
-    if not dynamic_plot_cases:  # Check if any cases were found, RARE but keep for Debugging
+    if not dynamic_plot_cases:
         print("Skipping plot generation: No valid dynamic plot cases could be determined from the data.")
         return
 
