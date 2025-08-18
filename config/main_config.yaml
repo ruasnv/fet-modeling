@@ -9,8 +9,10 @@ global_settings:
   debug_mode: False #Set to "true" to enable DEBUG prints
 
 paths:
-  raw_data_path: 'data/nmoshv.csv'
-  processed_data_dir: 'data/processed'
+  #raw_data_path: 'data/nmoshv.csv'
+  #processed_data_dir: 'data/processed'
+  raw_data_path: 'data\augmented\augmented_data.csv'
+  processed_data_dir: 'data/augmented_processed'
   trained_model_dir: 'models'
   report_output_dir: 'results'
   eda_output_dir: 'results/eda'
@@ -82,4 +84,5 @@ gan_params:
 gan_input:
   input_features: [ 'vg', 'vd', 'vb', 'w', 'l']
   target_feature: 'log_Id'
+  gan_training_features: ['vg', 'vd', 'vb', 'w', 'l', 'log_Id']
 

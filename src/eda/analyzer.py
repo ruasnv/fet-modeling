@@ -71,11 +71,12 @@ class EDAAnalyzer:
         print("\n--- BASIC STATISTICS ---")
         self._basic_stats()
 
+        print("\n DEBUG: SKIPPED FOR GANs")
         print(f"\n--- Temperature Distribution ---")
-        self._plot_temperature_distribution()  # This will show the distribution of ALL temperatures
-
+        #self._plot_temperature_distribution()  # This will show the distribution of ALL temperatures
+        print("\n DEBUG: SKIPPED FOR GANs")
         print("\n--- Device Size Analysis ---")
-        self._analyze_device_sizes()
+        #self._analyze_device_sizes()
 
         print("\n--- Operating Region Distribution ---")
         self._analyze_operating_regions()  # This will use the EDA-specific temp filter
