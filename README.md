@@ -1,5 +1,5 @@
-# MOSFET I_D Modeling Project
-This project provides a robust framework for modeling the drain current (I_D) of MOSFETs using a data-driven approach. It addresses the challenge of limited real-world measurement data by employing a specialized Physically-Aware Generative Adversarial Network (GAN) for data augmentation. The final compact model is trained on a comprehensive, augmented dataset to ensure high accuracy and generalization.
+# MOSFET Drain Current Modeling Project
+This project provides a robust framework for modeling the drain current (Id) of MOSFETs using a data-driven approach. It addresses the challenge of limited real-world measurement data by employing a specialized Physically-Aware Generative Adversarial Network (GAN) for data augmentation. The final compact model is trained on a comprehensive, augmented dataset to ensure high accuracy and generalization.
 
 ## **Key Features**
 
