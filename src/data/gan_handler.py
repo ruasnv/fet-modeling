@@ -14,7 +14,7 @@ class GANDataHandler:
 
     def __init__(self):
         self.preprocessor = DataPreprocessor(
-            raw_data_path=settings.get('paths.aug_data_dir') + '/augmented_data.csv', # Or wherever your augmented CSV lives
+            raw_data_path=settings.get('paths.aug_data_dir') + '/augmented_data.csv',
             processed_data_dir=settings.get('paths.processed_data_dir') # Or a specific augmented folder
         )
         self.processed_data_dir = settings.get('paths.processed_data_dir')
@@ -32,9 +32,6 @@ class GANDataHandler:
             return None
 
         self.full_original_df = self.preprocessor.get_filtered_original_data()
-
-        # The scaler for the y-target is no longer needed since a single scaler for all GAN features is used.
-        # _, self.scaler_y = self.preprocessor.get_scalers()
 
         if self.full_original_df.empty:
             print("No data available after initial processing for GAN segregation. Exiting.")

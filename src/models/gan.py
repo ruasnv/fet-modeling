@@ -57,12 +57,9 @@ class Generator(nn.Module):
         # Get the raw output from the final linear layer
         raw_output = self.output_layer(h)
 
-        # IMPORTANT: Apply activation functions to enforce physical constraints.
+        # TODO: Apply activation functions to enforce physical constraints.
         # w, l, and log_Id must be positive.
         # We assume the output tensor is ordered: [vg, vd, vb, w, l, log_Id]
-
-        # Softplus is a smooth approximation of ReLU and is often better for GANs
-        # because it avoids the zero-gradient problem of ReLU.
 
         # Split the output tensor into parts for different activation functions
         # The first three features (vg, vd, vb) don't need activation

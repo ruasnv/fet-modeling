@@ -12,7 +12,7 @@ class SimpleNN(nn.Module):
         # GELU activation
         # Avoid ReLU, dying ReLU issue on values close to zero
 
-        #TODO: This model can be improved with optimizations, dropout etc. Due to resource limits this is the most optimal for my case
+        #TODO: This model can be improved with optimizations, dropout etc.
 
     def forward(self, x):
         #To add dropout, use:

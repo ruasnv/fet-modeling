@@ -4,7 +4,7 @@ import pandas as pd
 from pathlib import Path
 import sys
 
-# Add project root to path to read settings if needed
+# Automatically find the project root (2 levels up from this script)
 project_root = Path(__file__).resolve().parent.parent
 sys.path.append(str(project_root))
 
@@ -12,7 +12,6 @@ from src.core.config import settings
 
 def convert_data():
     # Use config paths instead of hardcoding "augmented/augmented_data.pkl"
-    # This makes the tool smarter!
     base_dir = settings.get('paths.aug_data_dir')
     if not base_dir:
         # Fallback if config isn't set up for augmentation yet

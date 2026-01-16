@@ -7,19 +7,18 @@ import pandas as pd
 from pathlib import Path
 import os
 
-# --- The Clean Imports (Your new Architecture) ---
+# --- The Clean Imports  ---
 from src.core.config import settings
 from src.utils.environment import setup_environment
 from src.data.processor import DataPreprocessor
 from src.data.gan_handler import GANDataHandler
 
 # Models
-from src.models.baselines import SimpleNN
-from src.models.transformer import PhysicsAwareTransformer
+from src.models.baseline import SimpleNN
 from src.models.gan import Generator, Discriminator
 
 # Trainers & Runners
-from src.training.simple_nn_trainer import NNTrainer
+from src.training.baseline_trainer import NNTrainer
 from src.training.gan_trainer import GANTrainer
 from src.training.cv_runner import CrossValidator
 
@@ -107,9 +106,9 @@ def run_training_pipeline(model_type, use_cv=False):
     if model_type == "simplenn":
         model_class = SimpleNN
         model_params = {"input_dim": input_dim}
-    elif model_type == "transformer":
-        model_class = PhysicsAwareTransformer
-        model_params = {"input_dim": input_dim, "d_model": 64, "n_heads": 4}
+    #elif model_type == "transformer":
+        #model_class = PhysicsAwareTransformer
+        #model_params = {"input_dim": input_dim, "d_model": 64, "n_heads": 4}
 
     # 3. Cross Validation Mode
     if use_cv:

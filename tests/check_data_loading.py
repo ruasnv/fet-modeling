@@ -3,8 +3,7 @@ import sys
 import os
 from pathlib import Path
 
-# Fix: Dynamically add the project root to sys.path
-# This works if the file is in 'FET_Modeling/tests/'
+# Append the project root to sys.path for imports
 project_root = Path(__file__).resolve().parent.parent
 sys.path.append(str(project_root))
 
@@ -20,7 +19,7 @@ def test_pipeline():
     data_ready = dp.load_or_process_data(force_reprocess=True)
 
     if data_ready:
-        print("\n✅ SUCCESS: Data Pipeline is working!")
+        print("\n SUCCESS: Data Pipeline is working!")
         
         # Verify data shapes
         X_cv, y_cv, _, _ = dp.get_cv_data()
