@@ -1,73 +1,180 @@
-# MOSFET Drain Current Modeling Project
-This project provides a robust framework for modeling the drain current (Id) of MOSFETs using a data-driven approach. It addresses the challenge of limited real-world measurement data by employing a specialized Physically-Aware Generative Adversarial Network (GAN) for data augmentation. The final compact model is trained on a comprehensive, augmented dataset to ensure high accuracy and generalization.
+FET Modeling with Deep Learning & GAN-Based Augmentation
+========================================================
 
-## **Key Features**
+This repository implements a robust pipeline for modeling the DC characteristics of **NMOS-HV transistors** using Deep Neural Networks (DNNs). It addresses the challenge of data scarcity in semiconductor device modeling by employing **Generative Adversarial Networks (GANs)** to synthesize physically realistic measurement data.
 
-### Data Augmentation with Physically-Aware GAN
-Our core innovation is a GAN designed to generate synthetic data that adheres to fundamental physical laws. The Generator network is trained to produce only the core physical parameters that cannot be derived from others.
+**Key Features:**
 
-Device dimensions: Width (W) and Length (L)
+-   **Physics-Informed Feature Engineering:** Incorporates domain-specific features like $W/L$ ratio and dynamic Threshold Voltage ($V_{th}$) calculation using the SPICE Level 1 Body Effect formula.
 
-Operating voltages: Gate-Source (V_gs) and Drain-Source (V_ds)
+-   **GAN Data Augmentation:** A specialized GAN architecture designed to generate tabular device measurement data, balancing the dataset across Cut-off, Linear, and Saturation regions.
 
-Drain current: (I_D)
+-   **Modular Pipeline:** A production-ready Python package structure separating data processing, training, and evaluation.
 
-A key architectural feature is the use of the Softplus activation function on the final output layer for parameters that must be positive, such as W, L, and I_D. This guarantees that all generated device sizes and currents are physically plausible. Other parameters, such as the W/L ratio and operating region, are derived from the generated core values, ensuring mathematical consistency.
+-   **Reproducible Results:** Fully configurable experiments via YAML files and fixed random seeds.
 
-### Modular Design
-The project is organized into distinct Python modules for data processing, modeling, training, evaluation, and utilities, providing a clean and maintainable structure.
+* * * * *
 
-### Configurable Workflow
-The entire workflow is managed through YAML configuration files (configs/). This allows for easy adjustment of parameters for data filtering, feature engineering, model architecture, training, and plotting without changing the code.
+Project Structure
+--------------------
 
-### Data Preprocessing
-The pipeline handles raw CSV data, cleans column names, and performs advanced feature engineering, including the calculation of W/L ratio, V_gs, V_ds, V_bs, and log-transformation of I_D. It also dynamically calculates the threshold voltage (V_th) and classifies operating regions for stratified data splitting.
+Plaintext
 
-### Exploratory Data Analysis (EDA)
-The EDA module provides in-depth insights into the dataset's characteristics, including missing values, basic statistics, temperature distribution, device size variations, and feature correlation heatmaps.
-
-### Neural Network Modeling
-The core of the compact model is a SimpleNN (feedforward neural network) implemented in PyTorch. The framework is flexible and can be adapted to other network architectures.
-
-### Flexible Training & Evaluation
-The NNTrainer and NNEvaluator classes handle the training loop, loss calculation, and performance metrics (R², MAE, RMSE, and MAPE) to ensure the model's accuracy.
-
-### K-Fold Cross-Validation
-A CrossValidator orchestrates stratified K-fold cross-validation to assess the model's generalization capabilities across different data splits.
-
-### Characteristic Curve Plotting
-A Plotter class generates I_D-V_DS and I_D-V_GS characteristic curves, comparing model predictions against measured data on both linear and logarithmic scales for visual verification.
-
-## Getting Started
-### Prerequisites
-Python 3.8+
-
-### Installation
-Clone the repository:
 ```
-git clone https://github.com/ruasnv/mosfet-id-modeling.git
-cd mosfet-id-modeling
+fet_modeling/
+├── configs/                 # Configuration files
+│   └── baseline.yaml        # Main config for Training and GANs
+├── data/                    # Data storage (Raw and Processed)
+├── tests/                   # Tests
+│   └── check_data_loading.py
+├── tools/                   # Tools
+│   └── convert_pkl_to_csv.py
+├── src/                     # Source code
+│   ├── core/                # Config management
+│   ├── data/                # Data loading & preprocessing pipelines
+│   ├── eda/                 # Exploratory Data Analysis tools
+│   ├── models/              # PyTorch definitions (SimpleNN, GAN)
+│   ├── physics/             # Semiconductor equations (Vth, Classification)
+│   ├── training/            # Training loops & Cross-Validation
+│   └── utils/               # Plotting & Analysis helpers
+├── main.py                  # Single entry point for the pipeline
+└── requirements.txt         # Dependencies
+
 ```
-Create and activate a virtual environment (recommended):
+
+* * * * *
+
+Getting Started
+------------------
+
+### 1\. Installation
+
+Clone the repository and set up a Python virtual environment (Python 3.8+ recommended).
+
+Bash
+
 ```
+# Create virtual environment
 python -m venv .venv
-```
-```
-# On Windows
+
+# Activate environment
+# Windows:
 .venv\Scripts\activate
-```
-```
-# On macOS/Linux
+# Mac/Linux:
 source .venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+
 ```
 
-Install dependencies:
+### 2\. Configuration
+
+All hyperparameters (learning rate, batch size, physics constants) are defined in `configs/baseline.yaml`. You do not need to change the code to experiment with different settings.
+
+* * * * *
+
+How to Run the Pipeline
+--------------------------
+
+The project uses a single entry point `main.py`. You control the workflow using the `--mode` argument.
+
+### Step 1: Exploratory Data Analysis (EDA)
+
+Generates distribution plots, correlation matrices, and physics consistency checks for the raw data.
+
+Bash
+
 ```
-pip install -r requirements.txt
+python main.py --mode eda
+
 ```
-Running the Project
-The entire pipeline, from data processing and GAN augmentation to final model training and evaluation, is orchestrated by a single script.
+
+*Outputs are saved to:* `results/eda/`
+
+### Step 2: Cross-Validation (Benchmarking)
+
+Runs K-Fold Cross-Validation on the `SimpleNN` model to establish a performance baseline. This uses the *Physics-Informed features* ($W/L, V_{th}$) to achieve high accuracy.
+
+Bash
+
 ```
-python src/main.py
+python main.py --mode cv --model simplenn
+
 ```
-This will generate synthetic data, train the final model, and save all results to the models/ and results/ directories.
+
+*Outputs:* Summary metrics (RMSE, MAPE) saved to `results/`.
+
+### Step 3: GAN Augmentation
+
+Trains a Generator/Discriminator pair for specific operating regions (e.g., Cut-off) to generate synthetic data.
+
+Bash
+
+```
+python main.py --mode gan
+
+```
+
+*Effect:* Trains GANs, generates synthetic samples, and saves a combined dataset to `data/processed/`.
+
+### Step 4: Final Training
+
+Trains the final `SimpleNN` regressor on the full (or augmented) dataset and saves the model for deployment.
+
+Bash
+
+```
+python main.py --mode train --model simplenn
+
+```
+
+*Outputs:* Trained model saved to `models/final_model.pth`.
+
+* * * * *
+
+🔬 Methodology & Physics
+------------------------
+
+### Feature Engineering
+
+Instead of feeding raw dimensions, we pre-process inputs to align with device physics:
+
+1.  **Geometric Ratio:** $W/L$ is explicitly calculated as it linearly correlates with current in the saturation region.
+
+2.  Dynamic Threshold Voltage ($V_{th}$):
+
+    $$V_{th} = V_{th0} + \gamma (\sqrt{2\phi_f + V_{SB}} - \sqrt{2\phi_f})$$
+
+    This allows the model to "understand" the Body Effect and accurately classify operating regions dynamically.
+
+### GAN Architecture
+
+-   **Generator:** Fully connected network with Batch Normalization and LeakyReLU.
+
+-   **Discriminator:** Binary classifier estimating the probability of a sample being "real."
+
+-   **Constraint:** GAN outputs are post-processed to ensure positive physical values (e.g., Width $> 0$).
+
+* * * * *
+
+Results
+----------
+
+| **Metric** | **Baseline (Standard MLP)** | **This Work (SimpleNN + Physics Features)** |
+| --- | --- | --- |
+| **MAPE** | ~11.16% | **~7.69%** |
+| **R²** | 0.98 | **>0.999** |
+
+*Note: Results may vary slightly depending on the random seed set in `configs/baseline.yaml`.*
+
+* * * * *
+
+License
+----------
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+Author: Rüya Sanver
+
+Institution: Sabancı University (PURE Project)

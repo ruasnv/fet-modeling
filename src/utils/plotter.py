@@ -7,7 +7,7 @@ import torch
 import pandas as pd
 from scipy.interpolate import interp1d
 from pathlib import Path
-from src.config import settings
+from src.core.config import settings
 
 
 class Plotter:

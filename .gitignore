@@ -16,3 +16,7 @@ __pycache__/
 *.json
 *.pkl
 *.pth
+
+# Python compiler cache
+__pycache__/
+*.pyc
