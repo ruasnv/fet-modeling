@@ -134,7 +134,8 @@ class GANTrainer:
 
     def generate_synthetic_data(self, num_samples):
         """
-        Generates synthetic data using the trained Generator and inverse-transforms it.
+        Generates synthetic data using the trained Generator and adds the correct
+        operating region label before returning.
         """
         self.generator.eval()
         with torch.no_grad():
@@ -148,44 +149,15 @@ class GANTrainer:
         # Create a DataFrame for the generated data
         generated_df = pd.DataFrame(generated_data_original, columns=gan_training_features)
 
-        # Now, separate the features and the target from this DataFrame
-        generated_df['id'] = np.power(10, generated_df['log_Id'])
+        # Add the operating region label
         generated_df['operating_region'] = self.region_name
 
-        # Calculate w/l and other derived columns
-        if 'w' in generated_df.columns and 'l' in generated_df.columns:
-            generated_df['wOverL'] = generated_df['w'] / generated_df['l']
+        # Calculate id from log_Id and other derived features
+        generated_df['id'] = np.power(10, generated_df['log_Id'])
 
-        # The following derived features should be present from the original data, so no need to calculate them again.
-        # Your preprocessor handles this. The GAN generates vg, vd, vb, w, and l, and the other features are derived.
-        # This code block from your original script is likely not needed now.
-        if 'vg' in generated_df.columns and 'vs' in generated_df.columns and 'vgs' not in generated_df.columns:
-            generated_df['vgs'] = generated_df['vg'] - generated_df['vs']
-        if 'vd' in generated_df.columns and 'vs' in generated_df.columns and 'vds' not in generated_df.columns:
-            generated_df['vds'] = generated_df['vd'] - generated_df['vs']
-        if 'vb' in generated_df.columns and 'vs' in generated_df.columns and 'vbs' not in generated_df.columns:
-            generated_df['vbs'] = generated_df['vb'] - generated_df['vs']
-        if 'vs' in generated_df.columns and 'vb' in generated_df.columns and 'vsb' not in generated_df.columns:
-            generated_df['vsb'] = generated_df['vs'] - generated_df['vb']
-
-        # Recalculate Vth and operating region for generated data to ensure consistency
-        if 'vsb' in generated_df.columns:
-            vth_params = settings.get('vth_params')
-            if vth_params and all(k in vth_params for k in ['vth0', 'gamma', 'phi_f']):
-                generated_df['vth'] = generated_df['vsb'].apply(
-                    lambda x: calculate_vth(x, vth0=vth_params['vth0'], gamma=vth_params['gamma'],
-                                            phi_f=vth_params['phi_f']))
-                generated_df['operating_region'] = generated_df.apply(
-                    lambda row: classify_region(row, vth_approx_val=row['vth']), axis=1)
-            else:
-                print("Warning: Vth parameters missing. Skipping Vth and region recalculation.")
-
-        min_current_threshold = 1e-12
-        generated_df['id'] = np.clip(generated_df['id'], a_min=min_current_threshold, a_max=None)
-
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", RuntimeWarning)
-            generated_df['log_Id'] = np.log10(generated_df['id'])
+        # You might need to add other derived columns if your EDA script expects them.
+        # Ensure your preprocessor script handles this, not the GAN script.
+        # This keeps the GAN code clean and focused on generating the core features.
 
         print(f"Generated {num_samples} synthetic samples for {self.region_name} region.")
         return generated_df

@@ -71,12 +71,11 @@ class EDAAnalyzer:
         print("\n--- BASIC STATISTICS ---")
         self._basic_stats()
 
-        print("\n DEBUG: SKIPPED FOR GANs")
         print(f"\n--- Temperature Distribution ---")
-        #self._plot_temperature_distribution()  # This will show the distribution of ALL temperatures
-        print("\n DEBUG: SKIPPED FOR GANs")
+        self._plot_temperature_distribution()  # This will show the distribution of ALL temperatures
+
         print("\n--- Device Size Analysis ---")
-        #self._analyze_device_sizes()
+        self._analyze_device_sizes()
 
         print("\n--- Operating Region Distribution ---")
         self._analyze_operating_regions()  # This will use the EDA-specific temp filter
@@ -170,7 +169,7 @@ class EDAAnalyzer:
         plt.close()
 
     def _analyze_operating_regions(self):
-        """Analyzes and plots the distribution of operating regions for a specific temperature."""
+        #Analyzes and plots the distribution of operating regions for a specific temperature.
         # Filter for the specific temperature for this plot
         filtered_df_for_regions = self.df[
             (self.df['id'] > 0) &

@@ -18,8 +18,6 @@ class GANDataHandler:
         self.segregated_data = {}
         self.scaler_X_gan = None
         self.scaler_y = None
-        # FIX: The GAN needs to learn all features, including the target.
-        # This line should reference 'gan_training_features' from your config.
         self.gan_features = settings.get('gan_input.gan_training_features')
 
     def load_and_segregate_data(self, force_reprocess=False):
@@ -40,7 +38,6 @@ class GANDataHandler:
 
         # --- Create and fit a single scaler for all GAN features (inputs + target) ---
         print("  - Creating and fitting a new StandardScaler for all GAN features...")
-        # FIX: Use self.gan_features, which now includes 'log_Id'.
         gan_data_subset = self.full_original_df[self.gan_features]
         self.scaler_X_gan = StandardScaler()
         self.scaler_X_gan.fit(gan_data_subset)
@@ -79,6 +76,7 @@ class GANDataHandler:
         """Returns the list of features specifically for the GAN model (inputs + target)."""
         return self.gan_features
 
+#TODO: REDUNDANCY!
     def get_target_feature(self):
         # FIX: This method is now redundant for the GAN's training data pipeline.
         return settings.get('gan_input.target_feature')

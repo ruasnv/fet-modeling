@@ -7,7 +7,7 @@ class Generator(nn.Module):
     """
     The Generator network for the GAN.
     It takes a latent space vector (noise) as input and generates synthetic data samples.
-    The output dimension matches the number of input features + 1 (for the log_Id target).
+    The output dimension matches the number of input features.
     """
 
     def __init__(self, latent_dim, data_dim):
@@ -38,8 +38,7 @@ class Generator(nn.Module):
             nn.LeakyReLU(0.2, inplace=True),
         )
 
-        # Output layer that maps to the data dimension
-        # We'll handle activations in the forward method
+        # Output layer that maps to the data dimension (6 features)
         self.output_layer = nn.Linear(512, data_dim)
 
     def forward(self, z):
@@ -59,22 +58,25 @@ class Generator(nn.Module):
         raw_output = self.output_layer(h)
 
         # IMPORTANT: Apply activation functions to enforce physical constraints.
-        # w and l must be positive, and log_Id must be positive (since Id must be positive).
-        # We assume the output tensor is ordered: [w, l, vgs, vds, id]
-        # We can use a Softplus or ReLU activation to enforce positivity.
+        # w, l, and log_Id must be positive.
+        # We assume the output tensor is ordered: [vg, vd, vb, w, l, log_Id]
 
         # Softplus is a smooth approximation of ReLU and is often better for GANs
         # because it avoids the zero-gradient problem of ReLU.
 
         # Split the output tensor into parts for different activation functions
-        w_output = torch.nn.functional.softplus(raw_output[:, 0].unsqueeze(1))
-        l_output = torch.nn.functional.softplus(raw_output[:, 1].unsqueeze(1))
-        vgs_output = raw_output[:, 2].unsqueeze(1)  # Can be positive or negative
-        vds_output = raw_output[:, 3].unsqueeze(1)  # Can be positive or negative
-        id_output = torch.nn.functional.softplus(raw_output[:, 4].unsqueeze(1))  # Id must be positive
+        # The first three features (vg, vd, vb) don't need activation
+        vg_output = raw_output[:, 0].unsqueeze(1)
+        vd_output = raw_output[:, 1].unsqueeze(1)
+        vb_output = raw_output[:, 2].unsqueeze(1)
 
-        # Concatenate the outputs back into a single tensor
-        generated_data = torch.cat([w_output, l_output, vgs_output, vds_output, id_output], dim=1)
+        # Apply Softplus to the remaining three features that must be positive
+        w_output = torch.nn.functional.softplus(raw_output[:, 3].unsqueeze(1))
+        l_output = torch.nn.functional.softplus(raw_output[:, 4].unsqueeze(1))
+        log_id_output = torch.nn.functional.softplus(raw_output[:, 5].unsqueeze(1))
+
+        # Concatenate the outputs back into a single tensor in the correct order
+        generated_data = torch.cat([vg_output, vd_output, vb_output, w_output, l_output, log_id_output], dim=1)
 
         return generated_data
 
@@ -127,4 +129,3 @@ class Discriminator(nn.Module):
             torch.Tensor: Probability that the input sample is real.
         """
         return self.model(x)
-
