@@ -133,7 +133,7 @@ python main.py --mode train --model simplenn
 
 * * * * *
 
-🔬 Methodology & Physics
+Methodology & Physics
 ------------------------
 
 ### Feature Engineering
